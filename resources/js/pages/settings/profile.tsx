@@ -13,20 +13,20 @@ type PageProps = {
     auth: Auth;
 };
 
-export default function Profile({ status }: { status?: string }) {
+export default function Profile() {
     const { auth } = usePage<PageProps>().props;
 
     return (
         <>
-            <Head title="Profile settings" />
+            <Head title="Pengaturan Profil" />
 
-            <h1 className="sr-only">Profile settings</h1>
+            <h1 className="sr-only">Pengaturan Profil</h1>
 
             <div className="space-y-6">
                 <Heading
                     variant="small"
-                    title="Profile"
-                    description="Update your name and email address"
+                    title="Profil"
+                    description="Perbarui nama Anda"
                 />
 
                 <Form
@@ -37,7 +37,7 @@ export default function Profile({ status }: { status?: string }) {
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name">Nama</Label>
                                 <Input
                                     id="name"
                                     className="mt-1 block w-full"
@@ -45,29 +45,14 @@ export default function Profile({ status }: { status?: string }) {
                                     name="name"
                                     required
                                     autoComplete="name"
-                                    placeholder="Full name"
+                                    placeholder="Nama lengkap"
                                 />
                                 <InputError className="mt-2" message={errors.name} />
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Email address"
-                                />
-                                <InputError className="mt-2" message={errors.email} />
-                            </div>
-
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing} data-test="update-profile-button">
-                                    Save
+                                    Simpan
                                 </Button>
                             </div>
                         </>
@@ -83,7 +68,7 @@ export default function Profile({ status }: { status?: string }) {
 Profile.layout = {
     breadcrumbs: [
         {
-            title: 'Profile settings',
+            title: 'Pengaturan Profil',
             href: edit(),
         },
     ],

@@ -1,3 +1,4 @@
+import type React from 'react';
 import { createInertiaApp } from '@inertiajs/react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -22,6 +23,14 @@ createInertiaApp({
                 return AppLayout;
         }
     },
+    resolve: (name) => {
+        const pages = import.meta.glob('./pages/**/*.tsx', { eager: true });
+        const page = pages[`./pages/${name}.tsx`] as { default: React.ComponentType } | undefined;
+        if (!page) {
+            throw new Error(`Page not found: ${name}`);
+        }
+        return page.default;
+    },
     strictMode: true,
     withApp(app) {
         return (
@@ -36,5 +45,4 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on load...
 initializeTheme();
