@@ -1,13 +1,14 @@
-import { Head, useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
+import type { FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { guruBkRoutes } from '@/lib/routes';
 
 interface SiswaData {
     id: number;
@@ -53,7 +54,7 @@ export default function SiswaEdit({ siswa }: Props) {
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        put(`/guru-bk/siswa/${siswa.id}`);
+        put(guruBkRoutes.siswa.update(siswa.id));
     };
 
     return (
@@ -62,7 +63,7 @@ export default function SiswaEdit({ siswa }: Props) {
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" onClick={() => window.history.back()}>
+                    <Button variant="outline" size="icon" onClick={() => router.get(guruBkRoutes.siswa.index)}>
                         <ArrowLeft className="size-4" />
                     </Button>
                     <div>
@@ -165,7 +166,7 @@ export default function SiswaEdit({ siswa }: Props) {
                     </Card>
 
                     <div className="flex justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={() => window.history.back()}>
+                        <Button type="button" variant="outline" onClick={() => router.get(guruBkRoutes.siswa.index)}>
                             Batal
                         </Button>
                         <Button type="submit" disabled={processing}>

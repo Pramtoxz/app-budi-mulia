@@ -1,19 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Pencil, User, MapPin, Phone, Users } from 'lucide-react';
+import { ArrowLeft, Pencil, User, Phone, Users } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-
-interface KelasInfo {
-    id: number;
-    nama: string;
-    pivot: {
-        tahun_ajaran: string;
-        status: string;
-    };
-}
+import { guruBkRoutes } from '@/lib/routes';
 
 interface PengajuanData {
     id: number;
@@ -67,7 +59,7 @@ export default function SiswaShow({ siswa }: Props) {
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant="outline" size="icon" onClick={() => router.get('/guru-bk/siswa')}>
+                        <Button variant="outline" size="icon" onClick={() => router.get(guruBkRoutes.siswa.index)}>
                             <ArrowLeft className="size-4" />
                         </Button>
                         <div>
@@ -75,7 +67,7 @@ export default function SiswaShow({ siswa }: Props) {
                             <p className="text-muted-foreground">NIS: {siswa.nis}</p>
                         </div>
                     </div>
-                    <Button onClick={() => router.get(`/guru-bk/siswa/${siswa.id}`)}>
+                    <Button onClick={() => router.get(guruBkRoutes.siswa.edit(siswa.id))}>
                         <Pencil className="size-4" />
                         Edit
                     </Button>

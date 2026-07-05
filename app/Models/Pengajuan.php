@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Pengajuan extends Model
 {
+    use HasFactory;
+
+    protected $table = 'pengajuan';
+
     protected $fillable = [
         'jadwal_id', 'kategori_id', 'tgl_pengajuan', 'siswa_id',
         'catatan', 'status', 'alasan_penolakan', 'diajukan_oleh',
@@ -16,7 +21,7 @@ class Pengajuan extends Model
     protected function casts(): array
     {
         return [
-            'tgl_pengajuan' => 'date',
+            'tgl_pengajuan' => 'date:Y-m-d',
         ];
     }
 

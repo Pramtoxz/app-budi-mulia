@@ -70,9 +70,9 @@ Ini adalah project **multi-tenant ready** — bisa dipakai atau dibagikan ke sek
 | 2 | ID strategy | Auto-increment Laravel, tidak pakai ID manual (K001, P001) |
 | 3 | Auth | Fortify dengan `username` + `password` (bukan email) |
 | 4 | Pengajuan konseling | **Hybrid** — Siswa bisa login sendiri, ATAU Guru BK inputkan untuk siswa (karena tidak semua siswa punya HP). Kolom `diajukan_oleh` untuk track siapa yang input |
-| 5 | Jadwal Guru BK | **Flexible** — Guru BK buat jadwal sendiri kapan saja (hari ini, besok, 2 minggu depan) |
+| 5 | Jadwal Guru BK | **Ketersediaan** — Jadwal = info kapan BK buka (Senin 08:00-11:00, dst). Bukan slot booking. Guru BK menjadwalkan konseling SETELAH approve pengajuan |
 | 6 | Tahun ajaran | **Flexible** — Auto detect + bisa manual override dari settings |
-| 7 | Naik kelas | **Flexible** — Bisa bulk (pilih kelas → semua naik) atau satu-satu. Yang tinggal/pindah sekolah diatur manual |
+| 7 | Naik kelas | **Per siswa** — Pilih kelas → tampil daftar siswa → per siswa pilih: Naik (pilih kelas tujuan) / Tidak Naik / Pindah Sekolah / Lulus. Submit semua sekaligus |
 | 8 | Kategori konseling | **Flexible** — Guru BK yang buat & kelola kategori sendiri (bukan hardcode) |
 | 9 | Lampiran konseling | **Opsional** — Tidak semua perlu bukti |
 | 10 | Guru BK bisa berapa? | **Semua Guru BK** bisa handle semua pengajuan (tidak diikat ke jadwal tertentu) |
@@ -103,10 +103,10 @@ kategori (id, nama, deskripsi, timestamps)
 jadwal (id, hari, jam_mulai, jam_selesai, guru_bk_id→users, timestamps)
 
 -- Transaksi
-pengajuan (id, jadwal_id→jadwal, kategori_id→kategori, tgl_pengajuan,
+pengajuan (id, kategori_id→kategori, tgl_pengajuan,
            siswa_id→siswa, catatan, status[menunggu|disetujui|ditolak|dibatalkan],
            alasan_penolakan, diajukan_oleh[siswa|guru_bk], timestamps)
-konseling (id, pengajuan_id→pengajuan, tgl_konseling, status[dijadwalkan|selesai],
+konseling (id, pengajuan_id→pengajuan, tgl_konseling, jam_konseling, status[dijadwalkan|selesai],
            keterangan, timestamps)
 hasil (id, konseling_id→konseling, tgl_hasil, solusi, tindak_lanjut, timestamps)
 
@@ -125,7 +125,6 @@ users ←── artikel.author_id / pengumuman.author_id
 kelas ←── siswa_kelas.kelas_id
 siswa ←── siswa_kelas.siswa_id
 siswa ←── pengajuan.siswa_id
-jadwal ←── pengajuan.jadwal_id
 kategori ←── pengajuan.kategori_id
 pengajuan ←── konseling.pengajuan_id
 konseling ←── hasil.konseling_id
@@ -148,17 +147,16 @@ Siswa naik kelas tiap tahun. Jika `kelas_id` langsung di tabel `siswa`, riwayat 
 ```
 SISWA (tanpa login)          SISWA (login)               GURU BK
 ─────────────────────        ──────────────              ──────────
-Baca artikel &               Lihat jadwal BK →
-pengumuman                   Pilih kategori →             Terima pengajuan →
-                             Tulis catatan →              SETUJUI / TOLAK →
-                             Submit pengajuan             Jadwalkan konseling →
+Baca artikel &               Pilih kategori →
+pengumuman                   Tulis catatan →             Review pengajuan →
+                             Submit pengajuan             SETUJUI + JADWALKAN →
+                                                          (tgl + jam konseling) →
                                                           Jalankan sesi →
-                                                          Isi catatan konseling →
                                                           Input hasil/solusi →
                                                           Buat laporan →
                                                           Ajukan ke Kepsek
 
-                                                          KEpala Sekolah
+                                                          Kepala Sekolah
                                                           ─────────────
                                                           Lihat laporan →
                                                           Filter tahun ajaran →
@@ -195,11 +193,11 @@ dijadwalkan → selesai
 |------|---------|--------|-------|
 | Dashboard | ✅ | ❌ | ❌ |
 | Kelas | ✅ CRUD | ❌ | ❌ |
-| Siswa | ✅ CRUD | ❌ | ❌ |
-| Siswa-Kelas | ✅ Atur kelas + naik kelas | ❌ | ❌ |
+| Siswa | ✅ CRUD (kelas wajib saat create) | ❌ | ❌ |
+| Siswa-Kelas | ✅ Filter per kelas + ubah status | ❌ | ❌ |
 | Kategori | ✅ CRUD | ❌ | ❌ |
-| Jadwal | ✅ CRUD | ❌ | ❌ |
-| Pengajuan | ✅ Kelola (setujui/tolak/batalkan) + input untuk siswa | ❌ | ✅ Ajukan + Riwayat (login) |
+| Ketersediaan | ✅ Template mingguan + blokir tanggal | ❌ | ❌ |
+| Pengajuan | ✅ Kelola (approve+jadwalkan/tolak/batalkan) + input untuk siswa | ❌ | ✅ Ajukan + Riwayat (login) |
 | Konseling | ✅ Input catatan | ❌ | ❌ |
 | Hasil | ✅ Input solusi | ❌ | ✅ Lihat (login) |
 | **Laporan** | ✅ Buat + lihat + filter + PDF | ✅ **Lihat + filter + PDF + sahkan** | ❌ |
@@ -276,19 +274,20 @@ LOGIN SISWA:
 
 | No | Masalah | Solusi |
 |----|---------|--------|
-| 1 | 1 slot jadwal diterima berapa pengajuan? | 1 slot = 1 siswa. Setelah disetujui, slot tidak tersedia |
+| 1 | Jadwal Guru BK | Info ketersediaan (Senin 08:00-11:00, dst). Bukan slot booking. Guru BK jadwalkan konseling saat approve |
 | 2 | Siswa punya pengajuan aktif berapa? | Batasi 1 pengajuan aktif per siswa |
 | 3 | Guru BK berhalangan | Status `dibatalkan` di pengajuan + alasan |
 | 4 | Privasi data konseling | Kepsek hanya lihat rekap laporan, bukan detail per siswa |
 | 5 | Siswa lulus/pindah sekolah | Status `siswa_kelas` = `lulus` / `pindah_sekolah`. Data tetap tersimpan |
-| 6 | Naik kelas massal | Fitur bulk: pilih kelas asal → pilih kelas tujuan → semua siswa aktif naik |
-| 7 | Multi-tenant ready | Semua konfigurasi (tahun ajaran, kategori, kelas, jadwal) flexible, tidak hardcode |
+| 6 | Naik kelas | Per siswa: pilih kelas → tampil daftar → per siswa pilih naik/tidak/pindah/lulus |
+| 7 | Siswa baru tanpa kelas | Tidak ada. Siswa WAJIB pilih kelas saat create (langsung siswa_kelas) |
+| 8 | Multi-tenant ready | Semua konfigurasi (tahun ajaran, kategori, kelas, jadwal) flexible, tidak hardcode |
 
 ---
 
 ## Status Project Saat Ini
 
-**Kondisi: Tahap 2 sedang berjalan — Master Data + Siswa-Kelas + Pengajuan selesai, Konseling flow belum**
+**Kondisi: Tahap 3 CLEAR — siap mulai Tahap 4 (Artikel/Pengumuman CRUD)**
 
 ### Yang Sudah Dikerjakan (Tahap 1 — 04-07-2026)
 
@@ -318,11 +317,72 @@ LOGIN SISWA:
 - ✅ **Siswa-Kelas**: SiswaKelasController + index/assign/naik-kelas pages (filter, status, assign, naik kelas massal)
 - ✅ **Pengajuan**: PengajuanController (Guru BK + Siswa) + index/create/show pages (approve/reject/cancel, siswa submit)
 
+### Fix Tahap 2 (05-07-2026)
+
+- ✅ Route siswa: `.except(['create', 'edit'])` dihapus → `/guru-bk/siswa/create` dan `/{id}/edit` bisa diakses
+- ✅ Siswa index: Edit button navigasi ke `/edit` (sebelumnya salah ke `/show`)
+- ✅ Siswa show: Edit button navigasi ke `/edit` (sebelumnya salah ke `/show`)
+- ✅ Semua halaman guru-bk konsisten pakai `guruBkRoutes` dari `lib/routes.ts` (tidak ada hardcode URL)
+- ✅ `routes.ts` ditambah: `siswa.edit`, `pengajuan.*` (index, create, store, approve, reject, cancel)
+- ✅ Pengajuan index: pagination links ditambah (sebelumnya hanya info halaman)
+- ✅ Semua tombol "Batal" / "Kembali" navigasi ke index (bukan `window.history.back()`)
+- ✅ `php artisan wayfinder:generate` dijalankan
+- ✅ TypeScript check: 0 error baru (4 error pre-existing `.form()` Wayfinder)
+- ✅ Factories untuk semua model (10 factories: User, Kelas, Siswa, SiswaKelas, Kategori, Jadwal, Pengajuan, Konseling, Hasil, Artikel, Pengumuman)
+- ✅ `HasFactory` trait + `$table` di semua model (Jadwal, Hasil, Konseling, Pengajuan, Artikel, SiswaKelas)
+- ✅ `TestingSeeder` (100 data per tabel) + `app:seed-dummy` command
+- ✅ Normal `php artisan migrate:fresh --seed` tetap jalan (minimal data: 2 users + settings)
+- ✅ Semua index page pakai pagination (Kelas, Kategori, Jadwal, Siswa-Kelas, Siswa, Pengajuan)
+- ✅ TestingSeeder data realistis: 9 kelas, 270 siswa (30/kelas), 8 kategori, 30 jadwal, 90 pengajuan, 60 konseling+hasil, 15 artikel, 8 pengumuman
+
+### Redesign Tahap 2 (05-07-2026)
+
+- ✅ **Siswa create**: kelas wajib saat create (siswa langsung punya siswa_kelas)
+- ✅ **Hapus assign page**: tidak perlu assign manual 1 per 1
+- ✅ **Naik kelas redesign**: pilih kelas → tampil daftar siswa → per siswa pilih naik/tidak/pindah/lulus → submit semua
+- ✅ **Pengajuan**: jadwal_id dihapus dari pengajuan (siswa tidak pilih jadwal saat mengajukan)
+- ✅ **Jadwal Guru BK**: fungsi berubah jadi info ketersediaan (bukan slot booking)
+- ✅ **Approve + Jadwalkan**: Guru BK approve sekaligus jadwalkan konseling (tgl + jam) dalam satu dialog
+- ✅ **Konseling**: jam_konseling ditambah ke tabel konseling
+- ✅ Migration: jadwal_id nullable di pengajuan, jam_konseling di konseling
+- ✅ Lint bersih, TypeScript 0 error baru
+
+### Redesign Jadwal (05-07-2026)
+
+- ✅ **Jadwal CRUD dihapus** — diganti "Ketersediaan BK"
+- ✅ **Template mingguan**: checklist hari + jam → generate jadwal otomatis
+- ✅ **Blokir tanggal**: Guru BK bisa blokir tanggal tertentu (sakit, rapat)
+- ✅ **Model JadwalBlokir** + migration + controller (KetersediaanController)
+- ✅ Sidebar "Jadwal" → "Ketersediaan"
+- ✅ Old jadwal page deleted, routes updated
+
+### Redesign UI & Pengajuan (05-07-2026)
+
+- ✅ **EntityPicker component**: reusable modal search (`components/entity-picker.tsx`) — dipakai untuk cari siswa, kategori, kelas
+- ✅ **SelectTrigger fix**: `w-fit` → `w-full` (select box sama lebar dengan input)
+- ✅ **Date format fix**: semua model pakai `'date:Y-m-d'` bukan `'date'` (hindari UTC timestamp di frontend)
+- ✅ **Sidebar grouped**: Guru BK sidebar per label (Umum, Master, Bimbingan Konseling, Konten)
+- ✅ **Pengajuan index**: order `menunggu` di atas, aksi = Detail + Edit + Hapus (hapus hanya status menunggu)
+- ✅ **Pengajuan show**: cards vertikal (bukan horizontal grid), tombol aksi = Tolak + Setujui & Jadwalkan (menunggu) / Batalkan (disetujui)
+- ✅ **Pengajuan edit**: Guru BK + Siswa bisa edit kategori+catatan saat status menunggu
+- ✅ **Approve + Jadwalkan**: slot di-generate dari template ketersediaan di frontend (jadwalTemplate + blockedDates props), bukan fetch API
+- ✅ **Siswa create**: kelas pakai EntityPicker modal (bukan select dropdown)
+- ✅ **Pengajuan create**: siswa+kategori pakai EntityPicker modal
+- ✅ **Navigation fix**: `router.get()` di DropdownMenuItem → `<Link asChild>` (hindari request canceled)
+- ✅ Lint bersih, TypeScript 0 error baru
+
+### Yang Sudah Dikerjakan (Tahap 3 — 05-07-2026)
+
+- ✅ **Hasil flow**: KonselingController (Guru BK: index, show, inputHasil, editHasil, updateHasil) + Siswa HasilController (index, show)
+- ✅ **Konseling page (Guru BK)**: index (table + filter status + search + pagination) + show (detail + form input hasil) + edit-hasil
+- ✅ **Hasil page (Siswa)**: index (card list) + show (detail hasil konseling)
+- ✅ Routes: `guru-bk/konseling` (5 routes) + `siswa/hasil` (2 routes)
+- ✅ `routes.ts` ditambah: `konseling.*` (index, show, inputHasil, editHasil, updateHasil)
+- ✅ Sidebar sudah ada "Konseling" (Guru BK) dan "Hasil" (Siswa) — tidak perlu ubah
+- ✅ Lint bersih, TypeScript 0 error baru
+
 ### Yang Belum Dikerjakan
 
-- Konseling flow (jadwalkan + catatan)
-- Konseling flow (jadwalkan + catatan)
-- Hasil flow (input solusi + tindak lanjut)
 - Artikel CRUD + publik pages
 - Pengumuman CRUD + publik pages
 - Dashboard per role (rekap data)
@@ -357,10 +417,12 @@ app/
 │   │   ├── SiswaController.php
 │   │   ├── SiswaKelasController.php
 │   │   ├── KategoriController.php
-│   │   ├── JadwalController.php
-│   │   └── PengajuanController.php ← NEW
+│   │   ├── KetersediaanController.php ← NEW (template + blokir)
+│   │   ├── KonselingController.php ← NEW (index, show, inputHasil, editHasil, updateHasil)
+│   │   └── PengajuanController.php
 │   ├── Siswa/
-│   │   └── PengajuanController.php ← NEW
+│   │   ├── PengajuanController.php
+│   │   └── HasilController.php ← NEW (index, show)
 │   └── Settings/
 │       ├── ProfileController.php
 │       └── SecurityController.php
@@ -373,21 +435,46 @@ app/
 │   ├── ProfileDeleteRequest.php
 │   └── PasswordUpdateRequest.php
 ├── Models/
-│   ├── User.php (username, role, isGuruBk/isKepalaSekolah/isSiswa)
+│   ├── User.php (username, role, isGuruBk/isKepalaSekolah/isSiswa, HasFactory)
 │   ├── Setting.php
-│   ├── Kelas.php
-│   ├── Siswa.php
-│   ├── SiswaKelas.php
-│   ├── Kategori.php
-│   ├── Jadwal.php
-│   ├── Pengajuan.php
-│   ├── Konseling.php
-│   ├── Hasil.php
-│   ├── Artikel.php
-│   └── Pengumuman.php
+│   ├── Kelas.php (HasFactory, $table='kelas')
+│   ├── Siswa.php (HasFactory, $table='siswa')
+│   ├── SiswaKelas.php (HasFactory, $table='siswa_kelas')
+│   ├── Kategori.php (HasFactory, $table='kategori')
+│   ├── Jadwal.php (HasFactory, $table='jadwal')
+│   ├── JadwalBlokir.php (HasFactory, $table='jadwal_blokir')
+│   ├── Pengajuan.php (HasFactory, $table='pengajuan')
+│   ├── Konseling.php (HasFactory, $table='konseling')
+│   ├── Hasil.php (HasFactory, $table='hasil')
+│   ├── Artikel.php (HasFactory, $table='artikel')
+│   └── Pengumuman.php (HasFactory, $table='pengumuman')
+├── Console/Commands/
+│   └── SeedDummy.php (app:seed-dummy)
 └── Providers/
     ├── AppServiceProvider.php
     └── FortifyServiceProvider.php
+```
+
+### Database (`database/`)
+
+```
+database/
+├── factories/
+│   ├── UserFactory.php (guruBk, kepalaSekolah states)
+│   ├── KelasFactory.php
+│   ├── SiswaFactory.php
+│   ├── SiswaKelasFactory.php
+│   ├── KategoriFactory.php
+│   ├── JadwalFactory.php
+│   ├── PengajuanFactory.php
+│   ├── KonselingFactory.php
+│   ├── HasilFactory.php
+│   ├── ArtikelFactory.php
+│   └── PengumumanFactory.php
+├── seeders/
+│   ├── DatabaseSeeder.php (normal: 2 users + settings)
+│   └── TestingSeeder.php (100 data per tabel)
+└── migrations/ (14 files)
 ```
 
 ### Frontend (`resources/js/`)
@@ -400,40 +487,48 @@ resources/js/
 │   ├── dashboard.tsx (placeholder)
 │   ├── auth/login.tsx
 │   ├── settings/ (profile, security, appearance)
-│   └── guru-bk/
-│       ├── kelas/index.tsx (table + dialog CRUD)
-│       ├── siswa/index.tsx (table + search + pagination)
-│       ├── siswa/create.tsx (form lengkap)
-│       ├── siswa/edit.tsx (form lengkap)
-│       ├── siswa/show.tsx (detail + riwayat kelas)
-│       ├── siswa-kelas/index.tsx (filter + status + grouped by kelas)
-│       ├── siswa-kelas/assign.tsx (form assign siswa ke kelas)
-│       ├── siswa-kelas/naik-kelas.tsx (form naik kelas massal)
-│       ├── kategori/index.tsx (table + dialog CRUD)
-│       ├── jadwal/index.tsx (table + dialog CRUD)
-│       ├── pengajuan/index.tsx (table + filter + approve/reject/cancel)
-│       └── pengajuan/create.tsx (form buat pengajuan untuk siswa)
+│   ├── guru-bk/
+│   │   ├── kelas/index.tsx (table + dialog CRUD + pagination)
+│   │   ├── siswa/index.tsx (table + search + pagination + EntityPicker)
+│   │   ├── siswa/create.tsx (form lengkap + EntityPicker kelas)
+│   │   ├── siswa/edit.tsx (form lengkap)
+│   │   ├── siswa/show.tsx (detail + riwayat kelas)
+│   │   ├── siswa-kelas/index.tsx (wajib pilih kelas dulu + filter + status)
+│   │   ├── siswa-kelas/naik-kelas.tsx (semua default naik, override per siswa)
+│   │   ├── kategori/index.tsx (table + dialog CRUD + pagination)
+│   │   ├── ketersediaan/index.tsx (template mingguan + blokir tanggal)
+│   │   ├── pengajuan/index.tsx (table + filter + order menunggu atas + pagination)
+│   │   ├── pengajuan/create.tsx (EntityPicker siswa + kategori)
+│   │   ├── pengajuan/show.tsx (vertikal cards + slot scheduling + dialog approve/reject/cancel)
+│   │   ├── pengajuan/edit.tsx (EntityPicker kategori + catatan)
+│   │   ├── konseling/index.tsx (table + filter status + search + pagination)
+│   │   ├── konseling/show.tsx (detail konseling + form input hasil)
+│   │   └── konseling/edit-hasil.tsx (form edit solusi + tindak lanjut)
 │   └── siswa/
 │       ├── pengajuan/index.tsx (card list + status tracking)
-│       ├── pengajuan/create.tsx (form ajukan konseling)
-│       └── pengajuan/show.tsx (detail pengajuan + status)
+│       ├── pengajuan/create.tsx (EntityPicker kategori)
+│       ├── pengajuan/show.tsx (detail + tombol edit)
+│       ├── pengajuan/edit.tsx (EntityPicker kategori + catatan)
+│       ├── hasil/index.tsx (card list hasil konseling)
+│       └── hasil/show.tsx (detail hasil + solusi + tindak lanjut)
 ├── layouts/
 │   ├── app-layout.tsx → app/app-sidebar-layout.tsx
 │   ├── auth-layout.tsx → auth/auth-simple-layout.tsx
 │   └── settings/layout.tsx
 ├── components/
-│   ├── app-sidebar.tsx (nav per role)
+│   ├── app-sidebar.tsx (nav grouped per label: Umum, Master, BK, Konten)
 │   ├── app-logo.tsx (Budi Mulia branding)
-│   ├── flash-message.tsx ← NEW
-│   ├── nav-main.tsx
+│   ├── entity-picker.tsx (reusable modal search + select)
+│   ├── flash-message.tsx
+│   ├── nav-main.tsx (support NavGroup + NavItem)
 │   ├── nav-footer.tsx
 │   ├── nav-user.tsx
-│   └── ui/ (25+ shadcn components including table, textarea, form, tabs, pagination)
+│   └── ui/ (25+ shadcn components including table, textarea, form, tabs, pagination, scroll-area)
 ├── hooks/ (use-current-url, use-appearance, dll)
 ├── lib/
 │   ├── utils.ts
-│   └── routes.ts ← NEW (guruBkRoutes)
-└── types/ (auth, navigation, ui, global.d.ts)
+│   └── routes.ts (guruBkRoutes — semua URL guru-bk)
+└── types/ (auth, navigation.ts [NavItem, NavGroup], ui, global.d.ts)
 ```
 
 ### Routes
@@ -441,8 +536,17 @@ resources/js/
 ```
 routes/
 ├── web.php (welcome, dashboard, route grouping per role: guru-bk/, kepsek/, siswa/)
-│   └── guru-bk: kelas, siswa, kategori, jadwal (resource) + siswa-kelas (7 routes) + pengajuan (6 routes)
-│   └── siswa: pengajuan (4 routes)
+│   └── guru-bk:
+│       ├── kelas (resource: index, store, update, destroy)
+│       ├── siswa (full resource: index, create, store, show, edit, update, destroy)
+│       ├── kategori (resource: index, store, update, destroy)
+│       ├── ketersediaan (4 routes: index, template, blokir, removeBlokir)
+│       ├── siswa-kelas (5 routes: index, update, destroy, naik-kelas form, naik-kelas process)
+│       ├── pengajuan (10 routes: index, create, store, show, edit, update, destroy, approve, reject, cancel)
+│       └── konseling (5 routes: index, show, input-hasil, edit-hasil, update-hasil)
+│   └── siswa:
+│       ├── pengajuan (6 routes: index, create, store, show, edit, update)
+│       └── hasil (2 routes: index, show)
 ├── settings.php (profile, security, appearance)
 └── console.php (default inspire)
 ```
@@ -455,6 +559,13 @@ routes/
 - Harus jalankan `php artisan wayfinder:generate` atau `npm run dev` sebelum frontend bisa compile
 - SSR Inertia diaktifkan di config (`config/inertia.php`) tapi SSR server belum tentu berjalan
 
+### Perintah Seeding
+
+| Perintah | Fungsi |
+|----------|--------|
+| `php artisan migrate:fresh --seed` | Reset DB + seed normal (2 users + settings) |
+| `php artisan app:seed-dummy` | Reset DB + data dummy realistis (270 siswa, 9 kelas, 90 pengajuan, dll) |
+
 ---
 
 ## Masalah Diketahui
@@ -464,6 +575,9 @@ routes/
 - Wayfinder `.form()` method tidak tersedia di v0.1.20 — gunakan `useForm` dari Inertia + URL string langsung (lihat `lib/routes.ts`)
 - EPERM error saat `pnpm add` — package.json rename gagal di Windows. Solusi: edit package.json manual lalu `pnpm install`
 - `usePage()` tidak bisa dipanggil di `withApp` (SSR context) — FlashMessage harus di layout, bukan di `withApp`
+- `router.get()` di `DropdownMenuItem` onClick → request canceled (dropdown unmount). Solusi: pakai `<Link asChild>`
+- Route cache bisa stale setelah edit routes — jalankan `php artisan route:clear` setelah perubahan route
+- `fetch()` API di Inertia app bisa stuck karena session/auth issue — hindari, kirim data langsung sebagai Inertia props dari controller
 
 ### Cleanup Sudah Dilakukan (04-07-2026)
 

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\GuruBk;
 
 use App\Http\Controllers\Controller;
+use App\Models\Kelas;
+use App\Models\Setting;
 use App\Models\Siswa;
+use App\Models\SiswaKelas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,7 +31,13 @@ class SiswaController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('guru-bk/siswa/create');
+        $kelasList = Kelas::orderBy('nama')->get(['id', 'nama']);
+        $tahunAjaranAktif = Setting::get('tahun_ajaran_aktif', '');
+
+        return Inertia::render('guru-bk/siswa/create', [
+            'kelasList' => $kelasList,
+            'tahunAjaranAktif' => $tahunAjaranAktif,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -49,12 +58,25 @@ class SiswaController extends Controller
             'pekerjaan_ibu' => 'nullable|string|max:255',
             'alamat_ibu' => 'nullable|string',
             'no_hp_ibu' => 'nullable|string|max:20',
+            'kelas_id' => 'required|exists:kelas,id',
+            'tahun_ajaran' => 'required|string|max:20',
         ]);
 
-        Siswa::create($validated);
+        $kelasId = $validated['kelas_id'];
+        $tahunAjaran = $validated['tahun_ajaran'];
+        unset($validated['kelas_id'], $validated['tahun_ajaran']);
+
+        $siswa = Siswa::create($validated);
+
+        SiswaKelas::create([
+            'siswa_id' => $siswa->id,
+            'kelas_id' => $kelasId,
+            'tahun_ajaran' => $tahunAjaran,
+            'status' => 'aktif',
+        ]);
 
         return redirect()->route('guru-bk.siswa.index')
-            ->with('success', 'Siswa berhasil ditambahkan.');
+            ->with('success', 'Siswa berhasil ditambahkan ke kelas.');
     }
 
     public function show(Siswa $siswa): Response

@@ -1,15 +1,28 @@
-import { Head, useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { ArrowLeft, X } from 'lucide-react';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
 
+import { EntityPicker } from '@/components/entity-picker';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { guruBkRoutes } from '@/lib/routes';
 
-export default function SiswaCreate() {
+interface KelasData { id: number; nama: string; }
+
+interface Props {
+    kelasList: KelasData[];
+    tahunAjaranAktif: string;
+}
+
+export default function SiswaCreate({ kelasList, tahunAjaranAktif }: Props) {
+    const [kelasPickerOpen, setKelasPickerOpen] = useState(false);
+
     const { data, setData, post, processing, errors } = useForm({
         nis: '',
         nama: '',
@@ -26,11 +39,15 @@ export default function SiswaCreate() {
         pekerjaan_ibu: '',
         alamat_ibu: '',
         no_hp_ibu: '',
+        kelas_id: '',
+        tahun_ajaran: tahunAjaranAktif,
     });
+
+    const selectedKelas = kelasList.find((k) => String(k.id) === data.kelas_id);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        post('/guru-bk/siswa');
+        post(guruBkRoutes.siswa.store);
     };
 
     return (
@@ -39,7 +56,7 @@ export default function SiswaCreate() {
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" onClick={() => window.history.back()}>
+                    <Button variant="outline" size="icon" onClick={() => router.get(guruBkRoutes.siswa.index)}>
                         <ArrowLeft className="size-4" />
                     </Button>
                     <div>
@@ -49,6 +66,40 @@ export default function SiswaCreate() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Kelas</CardTitle>
+                            <CardDescription>Tentukan kelas siswa</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label>Kelas *</Label>
+                                    {selectedKelas ? (
+                                        <div className="flex h-9 items-center gap-2 rounded-md border px-3">
+                                            <Badge variant="secondary" className="gap-1">
+                                                {selectedKelas.nama}
+                                                <button type="button" onClick={() => setData('kelas_id', '')} className="ml-1 rounded-full hover:bg-muted-foreground/20">
+                                                    <X className="size-3" />
+                                                </button>
+                                            </Badge>
+                                        </div>
+                                    ) : (
+                                        <Button type="button" variant="outline" className="w-full justify-start h-9 font-normal" onClick={() => setKelasPickerOpen(true)}>
+                                            Pilih kelas...
+                                        </Button>
+                                    )}
+                                    {errors.kelas_id && <p className="text-destructive text-sm">{errors.kelas_id}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="tahun_ajaran">Tahun Ajaran *</Label>
+                                    <Input id="tahun_ajaran" value={data.tahun_ajaran} onChange={(e) => setData('tahun_ajaran', e.target.value)} placeholder="2025/2026" />
+                                    {errors.tahun_ajaran && <p className="text-destructive text-sm">{errors.tahun_ajaran}</p>}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Data Pribadi</CardTitle>
@@ -142,7 +193,7 @@ export default function SiswaCreate() {
                     </Card>
 
                     <div className="flex justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={() => window.history.back()}>
+                        <Button type="button" variant="outline" onClick={() => router.get(guruBkRoutes.siswa.index)}>
                             Batal
                         </Button>
                         <Button type="submit" disabled={processing}>
@@ -151,6 +202,19 @@ export default function SiswaCreate() {
                     </div>
                 </form>
             </div>
+
+            <EntityPicker
+                open={kelasPickerOpen}
+                onOpenChange={setKelasPickerOpen}
+                title="Pilih Kelas"
+                description="Cari kelas untuk siswa ini"
+                searchPlaceholder="Ketik nama kelas..."
+                items={kelasList}
+                renderItem={(k) => <span>{k.nama}</span>}
+                isSelected={(k) => String(k.id) === data.kelas_id}
+                onSelect={(k) => setData('kelas_id', String(k.id))}
+                filterFn={(k, q) => k.nama.toLowerCase().includes(q.toLowerCase())}
+            />
         </>
     );
 }

@@ -1,15 +1,16 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
 import { Plus, Pencil, Trash2, MoreHorizontal, GraduationCap, Users } from 'lucide-react';
+import type { FormEvent} from 'react';
+import { useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { guruBkRoutes } from '@/lib/routes';
 
 interface KelasData {
@@ -19,8 +20,17 @@ interface KelasData {
     siswa_kelas_count: number;
 }
 
+interface PaginatedKelas {
+    data: KelasData[];
+    links: { url: string | null; label: string; active: boolean }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 interface Props {
-    kelas: KelasData[];
+    kelas: PaginatedKelas;
 }
 
 export default function KelasIndex({ kelas }: Props) {
@@ -53,6 +63,7 @@ export default function KelasIndex({ kelas }: Props) {
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+
         if (editingKelas) {
             put(guruBkRoutes.kelas.update(editingKelas.id), {
                 onSuccess: () => {
@@ -105,11 +116,11 @@ export default function KelasIndex({ kelas }: Props) {
                             Daftar Kelas
                         </CardTitle>
                         <CardDescription>
-                            Total {kelas.length} kelas terdaftar
+                            Total {kelas.total} kelas terdaftar
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {kelas.length === 0 ? (
+                        {kelas.data.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <GraduationCap className="size-12 text-muted-foreground/50" />
                                 <h3 className="mt-4 text-lg font-semibold">Belum ada kelas</h3>
@@ -132,7 +143,7 @@ export default function KelasIndex({ kelas }: Props) {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {kelas.map((k) => (
+                                    {kelas.data.map((k) => (
                                         <TableRow key={k.id}>
                                             <TableCell className="font-medium">{k.nama}</TableCell>
                                             <TableCell>
@@ -172,6 +183,26 @@ export default function KelasIndex({ kelas }: Props) {
                                     ))}
                                 </TableBody>
                             </Table>
+                        )}
+
+                        {kelas.last_page > 1 && (
+                            <div className="mt-4 flex items-center justify-between">
+                                <p className="text-muted-foreground text-sm">
+                                    Menampilkan {((kelas.current_page - 1) * kelas.per_page) + 1} - {Math.min(kelas.current_page * kelas.per_page, kelas.total)} dari {kelas.total} kelas
+                                </p>
+                                <div className="flex gap-1">
+                                    {kelas.links.map((link, i) => (
+                                        <Button
+                                            key={i}
+                                            variant={link.active ? 'default' : 'outline'}
+                                            size="sm"
+                                            disabled={!link.url}
+                                            onClick={() => link.url && router.get(link.url)}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </CardContent>
                 </Card>

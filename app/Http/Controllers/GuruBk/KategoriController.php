@@ -11,9 +11,12 @@ use Inertia\Response;
 
 class KategoriController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $kategori = Kategori::withCount('pengajuan')->latest()->get();
+        $kategori = Kategori::withCount('pengajuan')
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
 
         return Inertia::render('guru-bk/kategori/index', [
             'kategori' => $kategori,

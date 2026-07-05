@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Siswa extends Model
 {
+    use HasFactory;
     protected $table = 'siswa';
 
     protected $fillable = [
@@ -20,7 +22,7 @@ class Siswa extends Model
     protected function casts(): array
     {
         return [
-            'tgl_lahir' => 'date',
+            'tgl_lahir' => 'date:Y-m-d',
         ];
     }
 

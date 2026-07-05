@@ -12,9 +12,12 @@ use Inertia\Response;
 
 class JadwalController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $jadwal = Jadwal::with('guruBk:id,name')->latest()->get();
+        $jadwal = Jadwal::with('guruBk:id,name')
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
 
         $guruBkList = User::where('role', 'guru_bk')->get(['id', 'name']);
 

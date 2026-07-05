@@ -1,14 +1,15 @@
 import { Head, router, useForm } from '@inertiajs/react';
+import { Trash2, MoreHorizontal, Users, ArrowUpRight, GraduationCap } from 'lucide-react';
 import { useState } from 'react';
-import { Plus, Trash2, MoreHorizontal, Users, ArrowUpRight, UserPlus } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { guruBkRoutes } from '@/lib/routes';
 
 interface SiswaData { id: number; nis: string; nama: string; }
 interface KelasData { id: number; nama: string; }
@@ -22,8 +23,17 @@ interface SiswaKelasData {
     kelas: KelasData;
 }
 
+interface PaginatedSiswaKelas {
+    data: SiswaKelasData[];
+    links: { url: string | null; label: string; active: boolean }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 interface Props {
-    siswaKelas: SiswaKelasData[];
+    siswaKelas: PaginatedSiswaKelas | null;
     kelasList: KelasData[];
     tahunAjaranList: string[];
     filters: { tahun_ajaran: string; kelas_id: number | null };
@@ -49,30 +59,35 @@ export default function SiswaKelasIndex({ siswaKelas, kelasList, tahunAjaranList
             tahun_ajaran: filters.tahun_ajaran,
             kelas_id: filters.kelas_id ? String(filters.kelas_id) : '',
         };
-        params[key] = value === 'all' ? '' : value;
-        router.get('/guru-bk/siswa-kelas', params, { preserveState: true });
+        params[key] = value;
+        router.get(guruBkRoutes.siswaKelas.index, params, { preserveState: true });
     };
 
     const handleUpdateStatus = (status: string) => {
-        if (!editingStatus) return;
-        router.put(`/guru-bk/siswa-kelas/${editingStatus.id}`, { status }, {
-            onSuccess: () => { setStatusDialogOpen(false); setEditingStatus(null); },
+        if (!editingStatus) {
+return;
+}
+
+        router.put(guruBkRoutes.siswaKelas.update(editingStatus.id), { status }, {
+            onSuccess: () => {
+ setStatusDialogOpen(false); setEditingStatus(null); 
+},
         });
     };
 
     const handleDelete = () => {
-        if (!deleting) return;
-        router.delete(`/guru-bk/siswa-kelas/${deleting.id}`, {
-            onSuccess: () => { setDeleteDialogOpen(false); setDeleting(null); },
+        if (!deleting) {
+return;
+}
+
+        router.delete(guruBkRoutes.siswaKelas.destroy(deleting.id), {
+            onSuccess: () => {
+ setDeleteDialogOpen(false); setDeleting(null); 
+},
         });
     };
 
-    const grouped: Record<string, SiswaKelasData[]> = {};
-    siswaKelas.forEach((sk) => {
-        const key = sk.kelas.nama;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(sk);
-    });
+    const hasData = siswaKelas && filters.kelas_id;
 
     return (
         <>
@@ -85,13 +100,9 @@ export default function SiswaKelasIndex({ siswaKelas, kelasList, tahunAjaranList
                         <p className="text-muted-foreground">Atur kelas siswa dan kenaikan kelas</p>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => router.get('/guru-bk/siswa-kelas/naik-kelas')}>
+                        <Button variant="outline" onClick={() => router.get(guruBkRoutes.siswaKelas.naikKelas)}>
                             <ArrowUpRight className="size-4" />
                             Naik Kelas
-                        </Button>
-                        <Button onClick={() => router.get('/guru-bk/siswa-kelas/assign')}>
-                            <UserPlus className="size-4" />
-                            Assign Siswa
                         </Button>
                     </div>
                 </div>
@@ -103,11 +114,21 @@ export default function SiswaKelasIndex({ siswaKelas, kelasList, tahunAjaranList
                             Data Siswa per Kelas
                         </CardTitle>
                         <CardDescription>
-                            Total {siswaKelas.length} siswa terdaftar
+                            Pilih kelas untuk melihat data siswa
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                            <Select value={filters.kelas_id ? String(filters.kelas_id) : ''} onValueChange={(v) => handleFilter('kelas_id', v)}>
+                                <SelectTrigger className="w-full sm:w-[200px]">
+                                    <SelectValue placeholder="Pilih Kelas *" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {kelasList.map((k) => (
+                                        <SelectItem key={k.id} value={String(k.id)}>{k.nama}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                             <Select value={filters.tahun_ajaran || 'all'} onValueChange={(v) => handleFilter('tahun_ajaran', v)}>
                                 <SelectTrigger className="w-full sm:w-[200px]">
                                     <SelectValue placeholder="Tahun Ajaran" />
@@ -119,84 +140,100 @@ export default function SiswaKelasIndex({ siswaKelas, kelasList, tahunAjaranList
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Select value={filters.kelas_id ? String(filters.kelas_id) : 'all'} onValueChange={(v) => handleFilter('kelas_id', v)}>
-                                <SelectTrigger className="w-full sm:w-[200px]">
-                                    <SelectValue placeholder="Kelas" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Kelas</SelectItem>
-                                    {kelasList.map((k) => (
-                                        <SelectItem key={k.id} value={String(k.id)}>{k.nama}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </div>
 
-                        {siswaKelas.length === 0 ? (
+                        {!hasData ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <GraduationCap className="size-12 text-muted-foreground/50" />
+                                <h3 className="mt-4 text-lg font-semibold">Pilih Kelas</h3>
+                                <p className="text-muted-foreground text-sm">
+                                    Pilih kelas di atas untuk melihat data siswa
+                                </p>
+                            </div>
+                        ) : siswaKelas!.data.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <Users className="size-12 text-muted-foreground/50" />
-                                <h3 className="mt-4 text-lg font-semibold">Belum ada data</h3>
+                                <h3 className="mt-4 text-lg font-semibold">Belum ada siswa</h3>
                                 <p className="text-muted-foreground text-sm">
-                                    Mulai dengan menambahkan siswa ke kelas
+                                    Kelas ini belum memiliki siswa. Tambahkan siswa melalui menu Siswa.
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-6">
-                                {Object.entries(grouped).map(([kelasNama, items]) => (
-                                    <div key={kelasNama}>
-                                        <h3 className="mb-2 font-semibold text-lg flex items-center gap-2">
-                                            {kelasNama}
-                                            <Badge variant="secondary">{items.length} siswa</Badge>
-                                        </h3>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>NIS</TableHead>
-                                                    <TableHead>Nama</TableHead>
-                                                    <TableHead>Tahun Ajaran</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead className="w-[80px]">Aksi</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {items.map((sk) => (
-                                                    <TableRow key={sk.id}>
-                                                        <TableCell className="font-mono text-sm">{sk.siswa.nis}</TableCell>
-                                                        <TableCell className="font-medium">{sk.siswa.nama}</TableCell>
-                                                        <TableCell>{sk.tahun_ajaran}</TableCell>
-                                                        <TableCell>
-                                                            <Badge variant={STATUS_OPTIONS.find((s) => s.value === sk.status)?.variant || 'default'}>
-                                                                {STATUS_OPTIONS.find((s) => s.value === sk.status)?.label || sk.status}
-                                                            </Badge>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button variant="ghost" size="icon">
-                                                                        <MoreHorizontal className="size-4" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end">
-                                                                    <DropdownMenuItem onClick={() => { setEditingStatus(sk); setStatusDialogOpen(true); }}>
-                                                                        Ubah Status
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem
-                                                                        onClick={() => { setDeleting(sk); setDeleteDialogOpen(true); }}
-                                                                        className="text-destructive focus:text-destructive"
-                                                                    >
-                                                                        <Trash2 className="size-4" />
-                                                                        Keluarkan
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
+                            <>
+                                <div className="mb-2 flex items-center gap-2">
+                                    <Badge variant="secondary">{siswaKelas!.total} siswa</Badge>
+                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>NIS</TableHead>
+                                            <TableHead>Nama</TableHead>
+                                            <TableHead>Tahun Ajaran</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="w-[80px]">Aksi</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {siswaKelas!.data.map((sk) => (
+                                            <TableRow key={sk.id}>
+                                                <TableCell className="font-mono text-sm">{sk.siswa.nis}</TableCell>
+                                                <TableCell className="font-medium">{sk.siswa.nama}</TableCell>
+                                                <TableCell>{sk.tahun_ajaran}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={STATUS_OPTIONS.find((s) => s.value === sk.status)?.variant || 'default'}>
+                                                        {STATUS_OPTIONS.find((s) => s.value === sk.status)?.label || sk.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon">
+                                                                <MoreHorizontal className="size-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => {
+ setEditingStatus(sk); setStatusDialogOpen(true); 
+}}>
+                                                                Ubah Status
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={() => {
+ setDeleting(sk); setDeleteDialogOpen(true); 
+}}
+                                                                className="text-destructive focus:text-destructive"
+                                                            >
+                                                                <Trash2 className="size-4" />
+                                                                Keluarkan
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+
+                                {siswaKelas!.last_page > 1 && (
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <p className="text-muted-foreground text-sm">
+                                            Menampilkan {((siswaKelas!.current_page - 1) * siswaKelas!.per_page) + 1} - {Math.min(siswaKelas!.current_page * siswaKelas!.per_page, siswaKelas!.total)} dari {siswaKelas!.total} data
+                                        </p>
+                                        <div className="flex gap-1">
+                                            {siswaKelas!.links.map((link, i) => (
+                                                <Button
+                                                    key={i}
+                                                    variant={link.active ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    disabled={!link.url}
+                                                    onClick={() => link.url && router.get(link.url)}
+                                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -223,7 +260,9 @@ export default function SiswaKelasIndex({ siswaKelas, kelasList, tahunAjaranList
                         ))}
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setStatusDialogOpen(false); setEditingStatus(null); }}>
+                        <Button variant="outline" onClick={() => {
+ setStatusDialogOpen(false); setEditingStatus(null); 
+}}>
                             Batal
                         </Button>
                     </DialogFooter>
@@ -239,7 +278,9 @@ export default function SiswaKelasIndex({ siswaKelas, kelasList, tahunAjaranList
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeleting(null); }}>Batal</Button>
+                        <Button variant="outline" onClick={() => {
+ setDeleteDialogOpen(false); setDeleting(null); 
+}}>Batal</Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={processing}>
                             {processing ? 'Menghapus...' : 'Keluarkan'}
                         </Button>

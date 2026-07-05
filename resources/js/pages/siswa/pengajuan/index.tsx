@@ -1,11 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import { Plus, ScrollText, Eye } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
-interface JadwalData { id: number; hari: string; jam_mulai: string; jam_selesai: string; guru_bk: { name: string }; }
 interface KategoriData { id: number; nama: string; }
 interface KonselingData { id: number; status: string; }
 interface PengajuanData {
@@ -15,7 +14,6 @@ interface PengajuanData {
     catatan: string | null;
     alasan_penolakan: string | null;
     diajukan_oleh: string;
-    jadwal: JadwalData;
     kategori: KategoriData;
     konseling: KonselingData | null;
 }
@@ -33,8 +31,6 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 };
 
 export default function SiswaPengajuanIndex({ pengajuan, siswaNotFound }: Props) {
-    const formatTime = (t: string) => t?.substring(0, 5) || t;
-
     const hasActive = pengajuan.some((p) => ['menunggu', 'disetujui'].includes(p.status));
 
     return (
@@ -83,7 +79,7 @@ export default function SiswaPengajuanIndex({ pengajuan, siswaNotFound }: Props)
                                         </Badge>
                                     </div>
                                     <CardDescription>
-                                        {p.jadwal.hari}, {formatTime(p.jadwal.jam_mulai)} - {formatTime(p.jadwal.jam_selesai)} • {p.jadwal.guru_bk.name}
+                                        {p.tgl_pengajuan}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>

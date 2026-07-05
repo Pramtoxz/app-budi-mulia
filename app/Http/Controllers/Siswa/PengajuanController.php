@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
-use App\Models\Jadwal;
 use App\Models\Kategori;
 use App\Models\Pengajuan;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +24,7 @@ class PengajuanController extends Controller
             ]);
         }
 
-        $pengajuan = Pengajuan::with(['jadwal.guruBk', 'kategori', 'konseling'])
+        $pengajuan = Pengajuan::with(['kategori', 'konseling'])
             ->where('siswa_id', $siswa->id)
             ->latest()
             ->get();
@@ -51,11 +50,9 @@ class PengajuanController extends Controller
             ->exists();
 
         $kategoriList = Kategori::orderBy('nama')->get(['id', 'nama']);
-        $jadwalList = Jadwal::with('guruBk:id,name')->orderBy('hari')->get();
 
         return Inertia::render('siswa/pengajuan/create', [
             'kategoriList' => $kategoriList,
-            'jadwalList' => $jadwalList,
             'hasActivePengajuan' => $activeExists,
         ]);
     }
@@ -80,7 +77,6 @@ class PengajuanController extends Controller
         }
 
         $validated = $request->validate([
-            'jadwal_id' => 'required|exists:jadwal,id',
             'kategori_id' => 'required|exists:kategori,id',
             'catatan' => 'nullable|string',
         ]);
@@ -106,10 +102,57 @@ class PengajuanController extends Controller
             abort(403);
         }
 
-        $pengajuan->load(['jadwal.guruBk', 'kategori', 'konseling']);
+        $pengajuan->load(['kategori', 'konseling']);
 
         return Inertia::render('siswa/pengajuan/show', [
             'pengajuan' => $pengajuan,
         ]);
+    }
+
+    public function edit(Pengajuan $pengajuan): Response
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+
+        if (!$siswa || $pengajuan->siswa_id !== $siswa->id) {
+            abort(403);
+        }
+
+        if ($pengajuan->status !== 'menunggu') {
+            return redirect()->route('siswa.pengajuan.show', $pengajuan)
+                ->with('error', 'Hanya pengajuan dengan status menunggu yang bisa diedit.');
+        }
+
+        $kategoriList = Kategori::orderBy('nama')->get(['id', 'nama']);
+
+        return Inertia::render('siswa/pengajuan/edit', [
+            'pengajuan' => $pengajuan,
+            'kategoriList' => $kategoriList,
+        ]);
+    }
+
+    public function update(Request $request, Pengajuan $pengajuan): RedirectResponse
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+
+        if (!$siswa || $pengajuan->siswa_id !== $siswa->id) {
+            abort(403);
+        }
+
+        if ($pengajuan->status !== 'menunggu') {
+            return redirect()->back()
+                ->with('error', 'Hanya pengajuan dengan status menunggu yang bisa diedit.');
+        }
+
+        $validated = $request->validate([
+            'kategori_id' => 'required|exists:kategori,id',
+            'catatan' => 'nullable|string',
+        ]);
+
+        $pengajuan->update($validated);
+
+        return redirect()->route('siswa.pengajuan.show', $pengajuan)
+            ->with('success', 'Pengajuan berhasil diperbarui.');
     }
 }

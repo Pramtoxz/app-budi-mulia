@@ -1,12 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, ScrollText, CheckCircle, XCircle, Clock, XOctagon } from 'lucide-react';
+import { ArrowLeft, ScrollText, CheckCircle, XCircle, Clock, XOctagon, Pencil } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-interface JadwalData { id: number; hari: string; jam_mulai: string; jam_selesai: string; guru_bk: { name: string }; }
 interface KategoriData { id: number; nama: string; }
 interface KonselingData { id: number; status: string; tgl_konseling: string | null; keterangan: string | null; }
 interface PengajuanData {
@@ -16,7 +15,6 @@ interface PengajuanData {
     catatan: string | null;
     alasan_penolakan: string | null;
     diajukan_oleh: string;
-    jadwal: JadwalData;
     kategori: KategoriData;
     konseling: KonselingData | null;
 }
@@ -35,7 +33,6 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 export default function SiswaPengajuanShow({ pengajuan }: Props) {
     const statusInfo = STATUS_MAP[pengajuan.status];
     const StatusIcon = statusInfo?.icon || Clock;
-    const formatTime = (t: string) => t?.substring(0, 5) || t;
 
     return (
         <>
@@ -70,14 +67,6 @@ export default function SiswaPengajuanShow({ pengajuan }: Props) {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <p className="text-muted-foreground text-sm">Jadwal</p>
-                                <p className="font-medium">{pengajuan.jadwal.hari}, {formatTime(pengajuan.jadwal.jam_mulai)} - {formatTime(pengajuan.jadwal.jam_selesai)}</p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground text-sm">Guru BK</p>
-                                <p className="font-medium">{pengajuan.jadwal.guru_bk.name}</p>
-                            </div>
                             <div>
                                 <p className="text-muted-foreground text-sm">Kategori</p>
                                 <p className="font-medium">{pengajuan.kategori.nama}</p>
@@ -123,11 +112,28 @@ export default function SiswaPengajuanShow({ pengajuan }: Props) {
                                             Tanggal: {pengajuan.konseling.tgl_konseling}
                                         </p>
                                     )}
+                                    {pengajuan.konseling.keterangan && (
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            Keterangan: {pengajuan.konseling.keterangan}
+                                        </p>
+                                    )}
                                 </div>
                             </>
                         )}
                     </CardContent>
                 </Card>
+
+                <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => router.get('/siswa/pengajuan')}>
+                        Kembali
+                    </Button>
+                    {pengajuan.status === 'menunggu' && (
+                        <Button onClick={() => router.get(`/siswa/pengajuan/${pengajuan.id}/edit`)}>
+                            <Pencil className="size-4" />
+                            Edit
+                        </Button>
+                    )}
+                </div>
             </div>
         </>
     );

@@ -1,11 +1,13 @@
 <?php
 
-use App\Http\Controllers\GuruBk\JadwalController;
 use App\Http\Controllers\GuruBk\KelasController;
 use App\Http\Controllers\GuruBk\KategoriController;
+use App\Http\Controllers\GuruBk\KetersediaanController;
+use App\Http\Controllers\GuruBk\KonselingController;
 use App\Http\Controllers\GuruBk\PengajuanController as GuruBkPengajuanController;
 use App\Http\Controllers\GuruBk\SiswaController;
 use App\Http\Controllers\GuruBk\SiswaKelasController;
+use App\Http\Controllers\Siswa\HasilController as SiswaHasilController;
 use App\Http\Controllers\Siswa\PengajuanController as SiswaPengajuanController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,16 +19,20 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'role:guru_bk'])->prefix('guru-bk')->name('guru-bk.')->group(function () {
     Route::resource('kelas', KelasController::class)->except(['show', 'create', 'edit'])->parameters(['kelas' => 'kelas']);
-    Route::resource('siswa', SiswaController::class)->except(['create', 'edit']);
+    Route::resource('siswa', SiswaController::class);
     Route::resource('kategori', KategoriController::class)->except(['show', 'create', 'edit']);
-    Route::resource('jadwal', JadwalController::class)->except(['show', 'create', 'edit']);
+
+    Route::prefix('ketersediaan')->name('ketersediaan.')->group(function () {
+        Route::get('/', [KetersediaanController::class, 'index'])->name('index');
+        Route::post('/template', [KetersediaanController::class, 'updateTemplate'])->name('template');
+        Route::post('/blokir', [KetersediaanController::class, 'addBlokir'])->name('blokir');
+        Route::delete('/blokir/{jadwalBlokir}', [KetersediaanController::class, 'removeBlokir'])->name('blokir.remove');
+    });
 
     Route::prefix('siswa-kelas')->name('siswa-kelas.')->group(function () {
         Route::get('/', [SiswaKelasController::class, 'index'])->name('index');
-        Route::post('/', [SiswaKelasController::class, 'store'])->name('store');
         Route::put('/{siswaKela}', [SiswaKelasController::class, 'update'])->name('update');
         Route::delete('/{siswaKela}', [SiswaKelasController::class, 'destroy'])->name('destroy');
-        Route::get('/assign', [SiswaKelasController::class, 'assignForm'])->name('assign');
         Route::get('/naik-kelas', [SiswaKelasController::class, 'naikKelasForm'])->name('naik-kelas');
         Route::post('/naik-kelas', [SiswaKelasController::class, 'naikKelas'])->name('naik-kelas.process');
     });
@@ -35,9 +41,21 @@ Route::middleware(['auth', 'role:guru_bk'])->prefix('guru-bk')->name('guru-bk.')
         Route::get('/', [GuruBkPengajuanController::class, 'index'])->name('index');
         Route::get('/create', [GuruBkPengajuanController::class, 'createForm'])->name('create');
         Route::post('/', [GuruBkPengajuanController::class, 'store'])->name('store');
+        Route::get('/{pengajuan}', [GuruBkPengajuanController::class, 'show'])->name('show');
+        Route::get('/{pengajuan}/edit', [GuruBkPengajuanController::class, 'edit'])->name('edit');
+        Route::put('/{pengajuan}', [GuruBkPengajuanController::class, 'update'])->name('update');
+        Route::delete('/{pengajuan}', [GuruBkPengajuanController::class, 'destroy'])->name('destroy');
         Route::post('/{pengajuan}/approve', [GuruBkPengajuanController::class, 'approve'])->name('approve');
         Route::post('/{pengajuan}/reject', [GuruBkPengajuanController::class, 'reject'])->name('reject');
         Route::post('/{pengajuan}/cancel', [GuruBkPengajuanController::class, 'cancel'])->name('cancel');
+    });
+
+    Route::prefix('konseling')->name('konseling.')->group(function () {
+        Route::get('/', [KonselingController::class, 'index'])->name('index');
+        Route::get('/{konseling}', [KonselingController::class, 'show'])->name('show');
+        Route::post('/{konseling}/hasil', [KonselingController::class, 'inputHasil'])->name('input-hasil');
+        Route::get('/{konseling}/edit-hasil', [KonselingController::class, 'editHasil'])->name('edit-hasil');
+        Route::put('/{konseling}/hasil', [KonselingController::class, 'updateHasil'])->name('update-hasil');
     });
 });
 
@@ -51,6 +69,13 @@ Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->grou
         Route::get('/create', [SiswaPengajuanController::class, 'create'])->name('create');
         Route::post('/', [SiswaPengajuanController::class, 'store'])->name('store');
         Route::get('/{pengajuan}', [SiswaPengajuanController::class, 'show'])->name('show');
+        Route::get('/{pengajuan}/edit', [SiswaPengajuanController::class, 'edit'])->name('edit');
+        Route::put('/{pengajuan}', [SiswaPengajuanController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('hasil')->name('hasil.')->group(function () {
+        Route::get('/', [SiswaHasilController::class, 'index'])->name('index');
+        Route::get('/{hasil}', [SiswaHasilController::class, 'show'])->name('show');
     });
 });
 

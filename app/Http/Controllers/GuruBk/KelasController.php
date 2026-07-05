@@ -11,12 +11,13 @@ use Inertia\Response;
 
 class KelasController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $kelas = Kelas::query()
             ->withCount('siswaKelas')
             ->latest()
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
         return Inertia::render('guru-bk/kelas/index', [
             'kelas' => $kelas,

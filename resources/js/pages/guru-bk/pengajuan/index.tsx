@@ -1,20 +1,18 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, Link } from '@inertiajs/react';
+import { Plus, ScrollText, Search, MoreHorizontal, Eye, Trash2, Pencil } from 'lucide-react';
 import { useState } from 'react';
-import { Plus, ScrollText, Search, CheckCircle, XCircle, XOctagon, MoreHorizontal, Eye } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { guruBkRoutes } from '@/lib/routes';
 
 interface SiswaData { id: number; nis: string; nama: string; }
-interface JadwalData { id: number; hari: string; jam_mulai: string; jam_selesai: string; guru_bk: { id: number; name: string }; }
 interface KategoriData { id: number; nama: string; }
 interface KonselingData { id: number; status: string; }
 interface PengajuanData {
@@ -25,7 +23,6 @@ interface PengajuanData {
     alasan_penolakan: string | null;
     diajukan_oleh: string;
     siswa: SiswaData;
-    jadwal: JadwalData;
     kategori: KategoriData;
     konseling: KonselingData | null;
 }
@@ -53,38 +50,28 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 
 export default function PengajuanIndex({ pengajuan, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
-    const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-    const [selectedPengajuan, setSelectedPengajuan] = useState<PengajuanData | null>(null);
-    const [alasan, setAlasan] = useState('');
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deleting, setDeleting] = useState<PengajuanData | null>(null);
 
     const handleSearch = () => {
-        router.get('/guru-bk/pengajuan', { search, status: filters.status || '' }, { preserveState: true });
+        router.get(guruBkRoutes.pengajuan.index, { search, status: filters.status || '' }, { preserveState: true });
     };
 
     const handleFilter = (status: string) => {
-        router.get('/guru-bk/pengajuan', { search, status: status === 'all' ? '' : status }, { preserveState: true });
+        router.get(guruBkRoutes.pengajuan.index, { search, status: status === 'all' ? '' : status }, { preserveState: true });
     };
 
-    const handleApprove = (p: PengajuanData) => {
-        router.post(`/guru-bk/pengajuan/${p.id}/approve`);
-    };
+    const handleDelete = () => {
+        if (!deleting) {
+return;
+}
 
-    const handleReject = () => {
-        if (!selectedPengajuan || !alasan.trim()) return;
-        router.post(`/guru-bk/pengajuan/${selectedPengajuan.id}/reject`, { alasan_penolakan: alasan }, {
-            onSuccess: () => { setRejectDialogOpen(false); setSelectedPengajuan(null); setAlasan(''); },
+        router.delete(guruBkRoutes.pengajuan.destroy(deleting.id), {
+            onSuccess: () => {
+ setDeleteDialogOpen(false); setDeleting(null); 
+},
         });
     };
-
-    const handleCancel = () => {
-        if (!selectedPengajuan || !alasan.trim()) return;
-        router.post(`/guru-bk/pengajuan/${selectedPengajuan.id}/cancel`, { alasan_penolakan: alasan }, {
-            onSuccess: () => { setCancelDialogOpen(false); setSelectedPengajuan(null); setAlasan(''); },
-        });
-    };
-
-    const formatTime = (t: string) => t?.substring(0, 5) || t;
 
     return (
         <>
@@ -96,7 +83,7 @@ export default function PengajuanIndex({ pengajuan, filters }: Props) {
                         <h1 className="text-2xl font-bold tracking-tight">Pengajuan Konseling</h1>
                         <p className="text-muted-foreground">Kelola pengajuan konseling siswa</p>
                     </div>
-                    <Button onClick={() => router.get('/guru-bk/pengajuan/create')}>
+                    <Button onClick={() => router.get(guruBkRoutes.pengajuan.create)}>
                         <Plus className="size-4" />
                         Buat untuk Siswa
                     </Button>
@@ -149,7 +136,6 @@ export default function PengajuanIndex({ pengajuan, filters }: Props) {
                                         <TableRow>
                                             <TableHead>Siswa</TableHead>
                                             <TableHead>Kategori</TableHead>
-                                            <TableHead>Jadwal</TableHead>
                                             <TableHead>Diajukan Oleh</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead className="w-[80px]">Aksi</TableHead>
@@ -165,12 +151,6 @@ export default function PengajuanIndex({ pengajuan, filters }: Props) {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{p.kategori.nama}</TableCell>
-                                                <TableCell>
-                                                    <div className="text-sm">
-                                                        <p>{p.jadwal.hari}</p>
-                                                        <p className="text-muted-foreground">{formatTime(p.jadwal.jam_mulai)} - {formatTime(p.jadwal.jam_selesai)}</p>
-                                                    </div>
-                                                </TableCell>
                                                 <TableCell>
                                                     <Badge variant={p.diajukan_oleh === 'siswa' ? 'default' : 'secondary'}>
                                                         {p.diajukan_oleh === 'siswa' ? 'Siswa' : 'Guru BK'}
@@ -189,28 +169,30 @@ export default function PengajuanIndex({ pengajuan, filters }: Props) {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem asChild>
+                                                                <Link href={guruBkRoutes.pengajuan.show(p.id)}>
+                                                                    <Eye className="size-4" />
+                                                                    Detail
+                                                                </Link>
+                                                            </DropdownMenuItem>
                                                             {p.status === 'menunggu' && (
                                                                 <>
-                                                                    <DropdownMenuItem onClick={() => handleApprove(p)}>
-                                                                        <CheckCircle className="size-4" />
-                                                                        Setujui
+                                                                    <DropdownMenuItem asChild>
+                                                                        <Link href={guruBkRoutes.pengajuan.edit(p.id)}>
+                                                                            <Pencil className="size-4" />
+                                                                            Edit
+                                                                        </Link>
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => { setSelectedPengajuan(p); setAlasan(''); setRejectDialogOpen(true); }} className="text-destructive focus:text-destructive">
-                                                                        <XCircle className="size-4" />
-                                                                        Tolak
+                                                                    <DropdownMenuItem
+                                                                        onClick={() => {
+ setDeleting(p); setDeleteDialogOpen(true); 
+}}
+                                                                        className="text-destructive focus:text-destructive"
+                                                                    >
+                                                                        <Trash2 className="size-4" />
+                                                                        Hapus
                                                                     </DropdownMenuItem>
                                                                 </>
-                                                            )}
-                                                            {p.status === 'disetujui' && (
-                                                                <DropdownMenuItem onClick={() => { setSelectedPengajuan(p); setAlasan(''); setCancelDialogOpen(true); }} className="text-destructive focus:text-destructive">
-                                                                    <XOctagon className="size-4" />
-                                                                    Batalkan
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            {p.alasan_penolakan && (
-                                                                <DropdownMenuItem disabled>
-                                                                    Alasan: {p.alasan_penolakan}
-                                                                </DropdownMenuItem>
                                                             )}
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -223,8 +205,20 @@ export default function PengajuanIndex({ pengajuan, filters }: Props) {
                                 {pengajuan.last_page > 1 && (
                                     <div className="mt-4 flex items-center justify-between">
                                         <p className="text-muted-foreground text-sm">
-                                            Halaman {pengajuan.current_page} dari {pengajuan.last_page}
+                                            Menampilkan {((pengajuan.current_page - 1) * pengajuan.per_page) + 1} - {Math.min(pengajuan.current_page * pengajuan.per_page, pengajuan.total)} dari {pengajuan.total} pengajuan
                                         </p>
+                                        <div className="flex gap-1">
+                                            {pengajuan.links.map((link, i) => (
+                                                <Button
+                                                    key={i}
+                                                    variant={link.active ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    disabled={!link.url}
+                                                    onClick={() => link.url && router.get(link.url)}
+                                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </>
@@ -233,40 +227,19 @@ export default function PengajuanIndex({ pengajuan, filters }: Props) {
                 </Card>
             </div>
 
-            <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Tolak Pengajuan</DialogTitle>
+                        <DialogTitle>Hapus Pengajuan</DialogTitle>
                         <DialogDescription>
-                            Tolak pengajuan dari <strong>{selectedPengajuan?.siswa.nama}</strong>. Berikan alasan penolakan.
+                            Hapus pengajuan dari <strong>{deleting?.siswa.nama}</strong>? Tindakan ini tidak dapat dibatalkan.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-2">
-                        <Label>Alasan Penolakan *</Label>
-                        <Textarea value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="Alasan penolakan..." rows={3} />
-                    </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setRejectDialogOpen(false); setSelectedPengajuan(null); }}>Batal</Button>
-                        <Button variant="destructive" onClick={handleReject} disabled={!alasan.trim()}>Tolak</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Batalkan Pengajuan</DialogTitle>
-                        <DialogDescription>
-                            Batalkan pengajuan dari <strong>{selectedPengajuan?.siswa.nama}</strong>. Berikan alasan pembatalan.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2">
-                        <Label>Alasan Pembatalan *</Label>
-                        <Textarea value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="Alasan pembatalan..." rows={3} />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => { setCancelDialogOpen(false); setSelectedPengajuan(null); }}>Batal</Button>
-                        <Button variant="destructive" onClick={handleCancel} disabled={!alasan.trim()}>Batalkan Pengajuan</Button>
+                        <Button variant="outline" onClick={() => {
+ setDeleteDialogOpen(false); setDeleting(null); 
+}}>Batal</Button>
+                        <Button variant="destructive" onClick={handleDelete}>Hapus</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

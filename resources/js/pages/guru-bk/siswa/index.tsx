@@ -1,16 +1,15 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
 import { Plus, Pencil, Trash2, MoreHorizontal, Users, Search, Eye } from 'lucide-react';
+import { useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { guruBkRoutes } from '@/lib/routes';
 
 interface KelasInfo {
     id: number;
@@ -55,7 +54,7 @@ export default function SiswaIndex({ siswa, filters }: Props) {
     const { processing } = useForm();
 
     const handleSearch = () => {
-        router.get('/guru-bk/siswa', { search }, { preserveState: true });
+        router.get(guruBkRoutes.siswa.index, { search }, { preserveState: true });
     };
 
     const openDeleteDialog = (s: SiswaData) => {
@@ -65,7 +64,7 @@ export default function SiswaIndex({ siswa, filters }: Props) {
 
     const handleDelete = () => {
         if (deletingSiswa) {
-            router.delete(`/guru-bk/siswa/${deletingSiswa.id}`, {
+            router.delete(guruBkRoutes.siswa.destroy(deletingSiswa.id), {
                 onSuccess: () => {
                     setDeleteDialogOpen(false);
                     setDeletingSiswa(null);
@@ -76,6 +75,7 @@ export default function SiswaIndex({ siswa, filters }: Props) {
 
     const getKelasInfo = (s: SiswaData) => {
         const aktif = s.siswa_kelas.find((sk) => sk.status === 'aktif');
+
         return aktif ? aktif.kelas.nama : '-';
     };
 
@@ -89,7 +89,7 @@ export default function SiswaIndex({ siswa, filters }: Props) {
                         <h1 className="text-2xl font-bold tracking-tight">Kelola Siswa</h1>
                         <p className="text-muted-foreground">Kelola data siswa sekolah</p>
                     </div>
-                    <Button onClick={() => router.get('/guru-bk/siswa/create')}>
+                    <Button onClick={() => router.get(guruBkRoutes.siswa.create)}>
                         <Plus className="size-4" />
                         Tambah Siswa
                     </Button>
@@ -158,11 +158,11 @@ export default function SiswaIndex({ siswa, filters }: Props) {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => router.get(`/guru-bk/siswa/${s.id}`)}>
+                                                            <DropdownMenuItem onClick={() => router.get(guruBkRoutes.siswa.show(s.id))}>
                                                                 <Eye className="size-4" />
                                                                 Detail
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => router.get(`/guru-bk/siswa/${s.id}`)}>
+                                                            <DropdownMenuItem onClick={() => router.get(guruBkRoutes.siswa.edit(s.id))}>
                                                                 <Pencil className="size-4" />
                                                                 Edit
                                                             </DropdownMenuItem>
@@ -215,7 +215,9 @@ export default function SiswaIndex({ siswa, filters }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeletingSiswa(null); }}>
+                        <Button variant="outline" onClick={() => {
+ setDeleteDialogOpen(false); setDeletingSiswa(null); 
+}}>
                             Batal
                         </Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={processing}>

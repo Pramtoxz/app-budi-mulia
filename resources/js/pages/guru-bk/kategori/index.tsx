@@ -1,16 +1,18 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
 import { Plus, Pencil, Trash2, MoreHorizontal, Tags } from 'lucide-react';
+import type { FormEvent} from 'react';
+import { useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { guruBkRoutes } from '@/lib/routes';
 
 interface KategoriData {
     id: number;
@@ -19,8 +21,17 @@ interface KategoriData {
     pengajuan_count: number;
 }
 
+interface PaginatedKategori {
+    data: KategoriData[];
+    links: { url: string | null; label: string; active: boolean }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 interface Props {
-    kategori: KategoriData[];
+    kategori: PaginatedKategori;
 }
 
 export default function KategoriIndex({ kategori }: Props) {
@@ -48,21 +59,28 @@ export default function KategoriIndex({ kategori }: Props) {
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+
         if (editingKategori) {
-            put(`/guru-bk/kategori/${editingKategori.id}`, {
-                onSuccess: () => { setDialogOpen(false); reset(); setEditingKategori(null); },
+            put(guruBkRoutes.kategori.update(editingKategori.id), {
+                onSuccess: () => {
+ setDialogOpen(false); reset(); setEditingKategori(null); 
+},
             });
         } else {
-            post('/guru-bk/kategori', {
-                onSuccess: () => { setDialogOpen(false); reset(); },
+            post(guruBkRoutes.kategori.store, {
+                onSuccess: () => {
+ setDialogOpen(false); reset(); 
+},
             });
         }
     };
 
     const handleDelete = () => {
         if (deletingKategori) {
-            router.delete(`/guru-bk/kategori/${deletingKategori.id}`, {
-                onSuccess: () => { setDeleteDialogOpen(false); setDeletingKategori(null); },
+            router.delete(guruBkRoutes.kategori.destroy(deletingKategori.id), {
+                onSuccess: () => {
+ setDeleteDialogOpen(false); setDeletingKategori(null); 
+},
             });
         }
     };
@@ -89,10 +107,10 @@ export default function KategoriIndex({ kategori }: Props) {
                             <Tags className="size-5" />
                             Daftar Kategori
                         </CardTitle>
-                        <CardDescription>Total {kategori.length} kategori</CardDescription>
+                        <CardDescription>Total {kategori.total} kategori</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {kategori.length === 0 ? (
+                        {kategori.data.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <Tags className="size-12 text-muted-foreground/50" />
                                 <h3 className="mt-4 text-lg font-semibold">Belum ada kategori</h3>
@@ -113,7 +131,7 @@ export default function KategoriIndex({ kategori }: Props) {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {kategori.map((k) => (
+                                    {kategori.data.map((k) => (
                                         <TableRow key={k.id}>
                                             <TableCell className="font-medium">{k.nama}</TableCell>
                                             <TableCell className="text-muted-foreground max-w-[300px] truncate">
@@ -135,7 +153,9 @@ export default function KategoriIndex({ kategori }: Props) {
                                                             Edit
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
-                                                            onClick={() => { setDeletingKategori(k); setDeleteDialogOpen(true); }}
+                                                            onClick={() => {
+ setDeletingKategori(k); setDeleteDialogOpen(true); 
+}}
                                                             className="text-destructive focus:text-destructive"
                                                         >
                                                             <Trash2 className="size-4" />
@@ -148,6 +168,26 @@ export default function KategoriIndex({ kategori }: Props) {
                                     ))}
                                 </TableBody>
                             </Table>
+                        )}
+
+                        {kategori.last_page > 1 && (
+                            <div className="mt-4 flex items-center justify-between">
+                                <p className="text-muted-foreground text-sm">
+                                    Menampilkan {((kategori.current_page - 1) * kategori.per_page) + 1} - {Math.min(kategori.current_page * kategori.per_page, kategori.total)} dari {kategori.total} kategori
+                                </p>
+                                <div className="flex gap-1">
+                                    {kategori.links.map((link, i) => (
+                                        <Button
+                                            key={i}
+                                            variant={link.active ? 'default' : 'outline'}
+                                            size="sm"
+                                            disabled={!link.url}
+                                            onClick={() => link.url && router.get(link.url)}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
@@ -170,7 +210,9 @@ export default function KategoriIndex({ kategori }: Props) {
                             <Textarea id="deskripsi" value={data.deskripsi} onChange={(e) => setData('deskripsi', e.target.value)} placeholder="Deskripsi kategori (opsional)" rows={3} />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); reset(); setEditingKategori(null); }}>
+                            <Button type="button" variant="outline" onClick={() => {
+ setDialogOpen(false); reset(); setEditingKategori(null); 
+}}>
                                 Batal
                             </Button>
                             <Button type="submit" disabled={processing}>
@@ -195,7 +237,9 @@ export default function KategoriIndex({ kategori }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeletingKategori(null); }}>Batal</Button>
+                        <Button variant="outline" onClick={() => {
+ setDeleteDialogOpen(false); setDeletingKategori(null); 
+}}>Batal</Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={processing || (deletingKategori?.pengajuan_count ?? 0) > 0}>
                             {processing ? 'Menghapus...' : 'Hapus'}
                         </Button>

@@ -1,42 +1,91 @@
-import { Head, useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
-import { ArrowLeft, ArrowUpRight } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { ArrowLeft, ArrowUpRight, Users, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { guruBkRoutes } from '@/lib/routes';
 
 interface KelasData { id: number; nama: string; }
+interface SiswaEntry { id: number; siswa: { id: number; nis: string; nama: string }; }
 
 interface Props {
     kelasList: KelasData[];
-    siswaPerKelas: Record<number, number>;
+    siswaList: SiswaEntry[];
     tahunAjaranAktif: string;
+    nextTahunAjaran: string;
+    selectedKelasId: number | null;
 }
 
-export default function NaikKelas({ kelasList, siswaPerKelas, tahunAjaranAktif }: Props) {
-    const [tahunAsal, tahunTujuan] = tahunAjaranAktif.split('/');
-    const nextTahunAjaran = tahunAsal && tahunTujuan
-        ? `${Number(tahunAsal) + 1}/${Number(tahunTujuan) + 1}`
-        : '';
+type SiswaStatus = 'naik' | 'tidak_naik' | 'pindah_sekolah' | 'lulus';
 
-    const { data, setData, post, processing, errors } = useForm({
-        kelas_asal_id: '',
-        kelas_tujuan_id: '',
-        tahun_ajaran_asal: tahunAjaranAktif,
-        tahun_ajaran_tujuan: nextTahunAjaran,
-    });
+export default function NaikKelas({ kelasList, siswaList, tahunAjaranAktif, nextTahunAjaran, selectedKelasId }: Props) {
+    const [selectedKelas, setSelectedKelas] = useState<string>(selectedKelasId ? String(selectedKelasId) : '');
+    const [kelasTujuan, setKelasTujuan] = useState<string>('');
+    const [exceptions, setExceptions] = useState<Record<number, SiswaStatus>>({});
+    const [processing, setProcessing] = useState(false);
 
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        post('/guru-bk/siswa-kelas/naik-kelas');
+    const handleKelasChange = (kelasId: string) => {
+        setSelectedKelas(kelasId);
+        setExceptions({});
+        setKelasTujuan('');
+        router.get(guruBkRoutes.siswaKelas.naikKelas, { kelas_id: kelasId }, { preserveState: true });
     };
 
-    const selectedAsalCount = data.kelas_asal_id ? (siswaPerKelas[Number(data.kelas_asal_id)] || 0) : 0;
+    const toggleException = (siswaId: number, status: SiswaStatus) => {
+        setExceptions((prev) => {
+            if (prev[siswaId] === status) {
+                const next = { ...prev };
+                delete next[siswaId];
+
+                return next;
+            }
+
+            return { ...prev, [siswaId]: status };
+        });
+    };
+
+    const handleSubmit = () => {
+        if (!selectedKelas || siswaList.length === 0 || !kelasTujuan) {
+return;
+}
+
+        const siswaPayload = siswaList.map((entry) => {
+            const exception = exceptions[entry.siswa.id];
+
+            if (exception) {
+                return {
+                    siswa_id: entry.siswa.id,
+                    status: exception,
+                    kelas_tujuan_id: null,
+                };
+            }
+
+            return {
+                siswa_id: entry.siswa.id,
+                status: 'naik' as SiswaStatus,
+                kelas_tujuan_id: Number(kelasTujuan),
+            };
+        });
+
+        setProcessing(true);
+        router.post(guruBkRoutes.siswaKelas.naikKelas, {
+            tahun_ajaran_tujuan: nextTahunAjaran,
+            siswa: siswaPayload,
+        }, {
+            onFinish: () => setProcessing(false),
+        });
+    };
+
+    const exceptionCount = Object.keys(exceptions).length;
+    const naikCount = siswaList.length - exceptionCount;
+    const canSubmit = selectedKelas && siswaList.length > 0 && kelasTujuan;
+
+    const kelasTujuanOptions = kelasList.filter((k) => String(k.id) !== selectedKelas);
 
     return (
         <>
@@ -44,120 +93,154 @@ export default function NaikKelas({ kelasList, siswaPerKelas, tahunAjaranAktif }
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" onClick={() => window.history.back()}>
+                    <Button variant="outline" size="icon" onClick={() => router.get(guruBkRoutes.siswaKelas.index)}>
                         <ArrowLeft className="size-4" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Naik Kelas Massal</h1>
-                        <p className="text-muted-foreground">Pindahkan semua siswa aktif dari kelas asal ke kelas tujuan</p>
+                        <h1 className="text-2xl font-bold tracking-tight">Naik Kelas</h1>
+                        <p className="text-muted-foreground">
+                            {tahunAjaranAktif} → {nextTahunAjaran}
+                        </p>
                     </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <ArrowUpRight className="size-5" />
+                            Pilih Kelas & Tujuan
+                        </CardTitle>
+                        <CardDescription>
+                            Semua siswa otomatis "Naik". Klik nama siswa yang TIDAK naik (pindah/tidak naik/lulus).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>Kelas Asal *</Label>
+                                <Select value={selectedKelas} onValueChange={handleKelasChange}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih kelas" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {kelasList.map((k) => (
+                                            <SelectItem key={k.id} value={String(k.id)}>{k.nama}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Kelas Tujuan *</Label>
+                                <Select value={kelasTujuan} onValueChange={setKelasTujuan} disabled={!selectedKelas}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih kelas tujuan" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {kelasTujuanOptions.map((k) => (
+                                            <SelectItem key={k.id} value={String(k.id)}>{k.nama}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {selectedKelas && siswaList.length > 0 && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <ArrowUpRight className="size-5" />
-                                Form Naik Kelas
+                                <Users className="size-5" />
+                                Daftar Siswa
                             </CardTitle>
                             <CardDescription>
-                                Siswa aktif di kelas asal akan dipindahkan ke kelas tujuan. Status kelas asal berubah menjadi "lulus".
+                                <span className="text-green-600 font-medium">{naikCount} naik</span>
+                                {exceptionCount > 0 && (
+                                    <span className="text-destructive ml-2">• {exceptionCount} tidak naik</span>
+                                )}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Tahun Ajaran Asal *</Label>
-                                        <Input
-                                            value={data.tahun_ajaran_asal}
-                                            onChange={(e) => setData('tahun_ajaran_asal', e.target.value)}
-                                        />
-                                        {errors.tahun_ajaran_asal && <p className="text-destructive text-sm">{errors.tahun_ajaran_asal}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Tahun Ajaran Tujuan *</Label>
-                                        <Input
-                                            value={data.tahun_ajaran_tujuan}
-                                            onChange={(e) => setData('tahun_ajaran_tujuan', e.target.value)}
-                                        />
-                                        {errors.tahun_ajaran_tujuan && <p className="text-destructive text-sm">{errors.tahun_ajaran_tujuan}</p>}
-                                    </div>
-                                </div>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[40px]">No</TableHead>
+                                        <TableHead>NIS</TableHead>
+                                        <TableHead>Nama</TableHead>
+                                        <TableHead className="text-center">Status</TableHead>
+                                        <TableHead className="text-center">Aksi Cepat</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {siswaList.map((entry, index) => {
+                                        const exception = exceptions[entry.siswa.id];
+                                        const isException = !!exception;
 
-                                <Separator />
-
-                                <div className="space-y-2">
-                                    <Label>Kelas Asal *</Label>
-                                    <Select value={data.kelas_asal_id} onValueChange={(v) => setData('kelas_asal_id', v)}>
-                                        <SelectTrigger><SelectValue placeholder="Pilih kelas asal" /></SelectTrigger>
-                                        <SelectContent>
-                                            {kelasList.map((k) => (
-                                                <SelectItem key={k.id} value={String(k.id)}>
-                                                    {k.nama} ({siswaPerKelas[k.id] || 0} siswa aktif)
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {errors.kelas_asal_id && <p className="text-destructive text-sm">{errors.kelas_asal_id}</p>}
-                                    {selectedAsalCount > 0 && (
-                                        <p className="text-sm text-muted-foreground">
-                                            <Badge variant="secondary">{selectedAsalCount} siswa</Badge> akan dipindahkan
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Kelas Tujuan *</Label>
-                                    <Select value={data.kelas_tujuan_id} onValueChange={(v) => setData('kelas_tujuan_id', v)}>
-                                        <SelectTrigger><SelectValue placeholder="Pilih kelas tujuan" /></SelectTrigger>
-                                        <SelectContent>
-                                            {kelasList.filter((k) => String(k.id) !== data.kelas_asal_id).map((k) => (
-                                                <SelectItem key={k.id} value={String(k.id)}>
-                                                    {k.nama}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {errors.kelas_tujuan_id && <p className="text-destructive text-sm">{errors.kelas_tujuan_id}</p>}
-                                </div>
-
-                                <div className="flex justify-end gap-2">
-                                    <Button type="button" variant="outline" onClick={() => window.history.back()}>
-                                        Batal
-                                    </Button>
-                                    <Button type="submit" disabled={processing || selectedAsalCount === 0}>
-                                        {processing ? 'Memproses...' : `Naikkan ${selectedAsalCount} Siswa`}
-                                    </Button>
-                                </div>
-                            </form>
+                                        return (
+                                            <TableRow key={entry.id} className={isException ? 'bg-destructive/5' : ''}>
+                                                <TableCell>{index + 1}</TableCell>
+                                                <TableCell className="font-mono text-sm">{entry.siswa.nis}</TableCell>
+                                                <TableCell className="font-medium">{entry.siswa.nama}</TableCell>
+                                                <TableCell className="text-center">
+                                                    {isException ? (
+                                                        <Badge variant="destructive">
+                                                            {exception === 'tidak_naik' ? 'Tidak Naik' : exception === 'pindah_sekolah' ? 'Pindah' : 'Lulus'}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="default" className="bg-green-600">
+                                                            <CheckCircle className="size-3 mr-1" />
+                                                            Naik
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {!isException ? (
+                                                        <div className="flex gap-1 justify-center">
+                                                            <Button size="sm" variant="outline" onClick={() => toggleException(entry.siswa.id, 'tidak_naik')}>
+                                                                Tidak Naik
+                                                            </Button>
+                                                            <Button size="sm" variant="outline" onClick={() => toggleException(entry.siswa.id, 'pindah_sekolah')}>
+                                                                Pindah
+                                                            </Button>
+                                                            <Button size="sm" variant="outline" onClick={() => toggleException(entry.siswa.id, 'lulus')}>
+                                                                Lulus
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <Button size="sm" variant="ghost" onClick={() => toggleException(entry.siswa.id, exception)}>
+                                                            Batalkan
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
+                )}
 
+                {selectedKelas && siswaList.length === 0 && (
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Ringkasan Kelas</CardTitle>
-                            <CardDescription>Jumlah siswa aktif per kelas ({tahunAjaranAktif})</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                {kelasList.map((k) => (
-                                    <div key={k.id} className="flex items-center justify-between rounded-lg border p-3">
-                                        <span className="font-medium">{k.nama}</span>
-                                        <Badge variant={siswaPerKelas[k.id] > 0 ? 'default' : 'secondary'}>
-                                            {siswaPerKelas[k.id] || 0} siswa
-                                        </Badge>
-                                    </div>
-                                ))}
-                                {kelasList.length === 0 && (
-                                    <p className="text-muted-foreground text-sm text-center py-4">
-                                        Belum ada kelas. Buat kelas terlebih dahulu.
-                                    </p>
-                                )}
-                            </div>
+                        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                            <Users className="size-12 text-muted-foreground/50" />
+                            <h3 className="mt-4 text-lg font-semibold">Tidak ada siswa</h3>
+                            <p className="text-muted-foreground text-sm">Tidak ditemukan siswa aktif di kelas ini</p>
                         </CardContent>
                     </Card>
-                </div>
+                )}
+
+                {selectedKelas && siswaList.length > 0 && (
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => router.get(guruBkRoutes.siswaKelas.index)}>
+                            Batal
+                        </Button>
+                        <Button onClick={handleSubmit} disabled={!canSubmit || processing}>
+                            {processing ? 'Memproses...' : `Proses ${siswaList.length} Siswa`}
+                        </Button>
+                    </div>
+                )}
             </div>
         </>
     );

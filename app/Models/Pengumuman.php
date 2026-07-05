@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class Pengumuman extends Model
 {
+    use HasFactory;
     protected $table = 'pengumuman';
 
     protected $fillable = [
@@ -18,8 +20,8 @@ class Pengumuman extends Model
     protected function casts(): array
     {
         return [
-            'published_at' => 'datetime',
-            'tgl_berlaku' => 'date',
+            'published_at' => 'datetime:Y-m-d H:i',
+            'tgl_berlaku' => 'date:Y-m-d',
         ];
     }
 
