@@ -288,7 +288,7 @@ LOGIN SISWA:
 
 ## Status Project Saat Ini
 
-**Kondisi: Tahap 2 sedang berjalan — Master Data CRUD selesai, Konseling flow belum**
+**Kondisi: Tahap 2 sedang berjalan — Master Data + Siswa-Kelas + Pengajuan selesai, Konseling flow belum**
 
 ### Yang Sudah Dikerjakan (Tahap 1 — 04-07-2026)
 
@@ -315,11 +315,12 @@ LOGIN SISWA:
 - ✅ **Siswa CRUD**: SiswaController + index/create/edit/show pages (table + search + pagination + form lengkap)
 - ✅ **Kategori CRUD**: KategoriController + pages/guru-bk/kategori/index.tsx (table + dialog)
 - ✅ **Jadwal CRUD**: JadwalController + pages/guru-bk/jadwal/index.tsx (table + dialog + select hari/guru)
+- ✅ **Siswa-Kelas**: SiswaKelasController + index/assign/naik-kelas pages (filter, status, assign, naik kelas massal)
+- ✅ **Pengajuan**: PengajuanController (Guru BK + Siswa) + index/create/show pages (approve/reject/cancel, siswa submit)
 
 ### Yang Belum Dikerjakan
 
-- Siswa-Kelas management (assign kelas + naik kelas bulk)
-- Pengajuan flow (siswa submit + guru BK kelola status)
+- Konseling flow (jadwalkan + catatan)
 - Konseling flow (jadwalkan + catatan)
 - Hasil flow (input solusi + tindak lanjut)
 - Artikel CRUD + publik pages
@@ -352,10 +353,14 @@ app/
 ├── Http/Controllers/
 │   ├── Controller.php (abstract base)
 │   ├── GuruBk/
-│   │   ├── KelasController.php ← NEW
-│   │   ├── SiswaController.php ← NEW
-│   │   ├── KategoriController.php ← NEW
-│   │   └── JadwalController.php ← NEW
+│   │   ├── KelasController.php
+│   │   ├── SiswaController.php
+│   │   ├── SiswaKelasController.php
+│   │   ├── KategoriController.php
+│   │   ├── JadwalController.php
+│   │   └── PengajuanController.php ← NEW
+│   ├── Siswa/
+│   │   └── PengajuanController.php ← NEW
 │   └── Settings/
 │       ├── ProfileController.php
 │       └── SecurityController.php
@@ -401,8 +406,17 @@ resources/js/
 │       ├── siswa/create.tsx (form lengkap)
 │       ├── siswa/edit.tsx (form lengkap)
 │       ├── siswa/show.tsx (detail + riwayat kelas)
+│       ├── siswa-kelas/index.tsx (filter + status + grouped by kelas)
+│       ├── siswa-kelas/assign.tsx (form assign siswa ke kelas)
+│       ├── siswa-kelas/naik-kelas.tsx (form naik kelas massal)
 │       ├── kategori/index.tsx (table + dialog CRUD)
-│       └── jadwal/index.tsx (table + dialog CRUD)
+│       ├── jadwal/index.tsx (table + dialog CRUD)
+│       ├── pengajuan/index.tsx (table + filter + approve/reject/cancel)
+│       └── pengajuan/create.tsx (form buat pengajuan untuk siswa)
+│   └── siswa/
+│       ├── pengajuan/index.tsx (card list + status tracking)
+│       ├── pengajuan/create.tsx (form ajukan konseling)
+│       └── pengajuan/show.tsx (detail pengajuan + status)
 ├── layouts/
 │   ├── app-layout.tsx → app/app-sidebar-layout.tsx
 │   ├── auth-layout.tsx → auth/auth-simple-layout.tsx
@@ -427,7 +441,8 @@ resources/js/
 ```
 routes/
 ├── web.php (welcome, dashboard, route grouping per role: guru-bk/, kepsek/, siswa/)
-│   └── guru-bk: kelas, siswa, kategori, jadwal (resource routes)
+│   └── guru-bk: kelas, siswa, kategori, jadwal (resource) + siswa-kelas (7 routes) + pengajuan (6 routes)
+│   └── siswa: pengajuan (4 routes)
 ├── settings.php (profile, security, appearance)
 └── console.php (default inspire)
 ```

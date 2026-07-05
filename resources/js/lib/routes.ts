@@ -13,6 +13,14 @@ export const guruBkRoutes = {
         update: (id: number) => `/guru-bk/siswa/${id}`,
         destroy: (id: number) => `/guru-bk/siswa/${id}`,
     },
+    siswaKelas: {
+        index: '/guru-bk/siswa-kelas',
+        store: '/guru-bk/siswa-kelas',
+        update: (id: number) => `/guru-bk/siswa-kelas/${id}`,
+        destroy: (id: number) => `/guru-bk/siswa-kelas/${id}`,
+        assign: '/guru-bk/siswa-kelas/assign',
+        naikKelas: '/guru-bk/siswa-kelas/naik-kelas',
+    },
     kategori: {
         index: '/guru-bk/kategori',
         store: '/guru-bk/kategori',

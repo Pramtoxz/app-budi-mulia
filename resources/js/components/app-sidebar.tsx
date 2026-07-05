@@ -49,6 +49,11 @@ const guruBkNavItems: NavItem[] = [
         icon: Users,
     },
     {
+        title: 'Siswa-Kelas',
+        href: '/guru-bk/siswa-kelas',
+        icon: Users,
+    },
+    {
         title: 'Kategori',
         href: '/guru-bk/kategori',
         icon: Tags,
