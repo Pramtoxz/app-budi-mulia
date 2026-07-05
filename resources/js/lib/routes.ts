@@ -51,4 +51,22 @@ export const guruBkRoutes = {
         editHasil: (id: number) => `/guru-bk/konseling/${id}/edit-hasil`,
         updateHasil: (id: number) => `/guru-bk/konseling/${id}/hasil`,
     },
+    artikel: {
+        index: '/guru-bk/artikel',
+        create: '/guru-bk/artikel/create',
+        store: '/guru-bk/artikel',
+        show: (id: number) => `/guru-bk/artikel/${id}`,
+        edit: (id: number) => `/guru-bk/artikel/${id}/edit`,
+        update: (id: number) => `/guru-bk/artikel/${id}`,
+        destroy: (id: number) => `/guru-bk/artikel/${id}`,
+    },
+    pengumuman: {
+        index: '/guru-bk/pengumuman',
+        create: '/guru-bk/pengumuman/create',
+        store: '/guru-bk/pengumuman',
+        show: (id: number) => `/guru-bk/pengumuman/${id}`,
+        edit: (id: number) => `/guru-bk/pengumuman/${id}/edit`,
+        update: (id: number) => `/guru-bk/pengumuman/${id}`,
+        destroy: (id: number) => `/guru-bk/pengumuman/${id}`,
+    },
 };

@@ -201,8 +201,8 @@ dijadwalkan → selesai
 | Konseling | ✅ Input catatan | ❌ | ❌ |
 | Hasil | ✅ Input solusi | ❌ | ✅ Lihat (login) |
 | **Laporan** | ✅ Buat + lihat + filter + PDF | ✅ **Lihat + filter + PDF + sahkan** | ❌ |
-| Artikel | ✅ CRUD | ❌ | ✅ Baca (publik, tanpa login) |
-| Pengumuman | ✅ CRUD | ❌ | ✅ Baca (publik, tanpa login) |
+| Artikel | ✅ CRUD | ❌ | ✅ Baca (di welcome page) |
+| Pengumuman | ✅ CRUD | ❌ | ✅ Baca (di welcome page) |
 
 ### Menu Laporan (Detail)
 
@@ -210,12 +210,18 @@ Semua laporan punya **filter tahun ajaran** (wajib) + filter tambahan + **export
 
 | No | Laporan | Filter Tambahan |
 |----|---------|----------------|
-| 1 | Laporan Siswa | Kelas |
-| 2 | Laporan Kategori | — |
-| 3 | Laporan Jadwal | Guru BK |
-| 4 | Laporan Pengajuan | Status |
-| 5 | Laporan Konseling | Kelas, Kategori |
-| 6 | Laporan Hasil | Kelas |
+| 1 | Laporan Kelas | — |
+| 2 | Laporan Siswa | Kelas |
+| 3 | Laporan Siswa-Kelas | Kelas, Status |
+| 4 | Laporan Kategori | — |
+| 5 | Laporan Ketersediaan | Guru BK |
+| 6 | Laporan Pengajuan | Status |
+| 7 | Laporan Konseling | Kelas, Kategori |
+| 8 | Laporan Hasil | Kelas |
+| 9 | Laporan Artikel | Status |
+| 10 | Laporan Pengumuman | Status |
+
+Detail kolom tabel: `doc/LAPORAN.md`
 
 ---
 
@@ -223,11 +229,11 @@ Semua laporan punya **filter tahun ajaran** (wajib) + filter tambahan + **export
 
 ```
 TANPA LOGIN:
-  /                          → landing page (welcome)
-  /artikel                   → daftar artikel
-  /artikel/{slug}            → detail artikel
-  /pengumuman                → daftar pengumuman
-  /pengumuman/{slug}         → detail pengumuman
+  /                          → landing page (welcome: profil sekolah + pengumuman + artikel)
+  /artikel                   → daftar artikel (publik)
+  /artikel/{slug}            → detail artikel (publik)
+  /pengumuman                → daftar pengumuman (publik)
+  /pengumuman/{slug}         → detail pengumuman (publik)
 
 LOGIN GURU BK:
   /dashboard                 → rekap data
@@ -240,24 +246,32 @@ LOGIN GURU BK:
   /konseling                 → input catatan konseling
   /hasil                     → input solusi
   /laporan                   → daftar laporan + filter + PDF
+  /laporan/kelas             → laporan kelas
   /laporan/siswa             → laporan siswa
+  /laporan/siswa-kelas       → laporan siswa-kelas (naik kelas)
   /laporan/kategori          → laporan kategori
-  /laporan/jadwal            → laporan jadwal
+  /laporan/ketersediaan      → laporan ketersediaan
   /laporan/pengajuan         → laporan pengajuan
   /laporan/konseling         → laporan konseling
   /laporan/hasil             → laporan hasil
+  /laporan/artikel           → laporan artikel
+  /laporan/pengumuman        → laporan pengumuman
   /artikel                   → CRUD artikel
   /pengumuman                → CRUD pengumuman
   /settings/profile          → edit profile
 
 LOGIN KEPALA SEKOLAH:
   /laporan                   → daftar laporan + filter + PDF + sahkan
+  /laporan/kelas             → laporan kelas
   /laporan/siswa             → laporan siswa
+  /laporan/siswa-kelas       → laporan siswa-kelas
   /laporan/kategori          → laporan kategori
-  /laporan/jadwal            → laporan jadwal
+  /laporan/ketersediaan      → laporan ketersediaan
   /laporan/pengajuan         → laporan pengajuan
   /laporan/konseling         → laporan konseling
   /laporan/hasil             → laporan hasil
+  /laporan/artikel           → laporan artikel
+  /laporan/pengumuman        → laporan pengumuman
   /settings/profile          → edit profile
 
 LOGIN SISWA:
@@ -287,7 +301,7 @@ LOGIN SISWA:
 
 ## Status Project Saat Ini
 
-**Kondisi: Tahap 3 CLEAR — siap mulai Tahap 4 (Artikel/Pengumuman CRUD)**
+**Kondisi: Tahap 4 CLEAR — siap mulai Tahap 5 (Dashboard + Laporan)**
 
 ### Yang Sudah Dikerjakan (Tahap 1 — 04-07-2026)
 
@@ -381,13 +395,36 @@ LOGIN SISWA:
 - ✅ Sidebar sudah ada "Konseling" (Guru BK) dan "Hasil" (Siswa) — tidak perlu ubah
 - ✅ Lint bersih, TypeScript 0 error baru
 
+### Yang Sudah Dikerjakan (Tahap 4 — 05-07-2026)
+
+- ✅ **Artikel CRUD (Guru BK)**: ArtikelController (index, create, store, show, edit, update, destroy) + pages (index + create + edit + show)
+- ✅ **Pengumuman CRUD (Guru BK)**: PengumumanController (index, create, store, show, edit, update, destroy) + pages (index + create + edit + show)
+- ✅ **PublikController**: artikelIndex, artikelShow, pengumumanIndex, pengumumanShow
+- ✅ **Publik pages**: `publik/artikel/index.tsx` (grid cards) + `publik/artikel/show.tsx` (detail) + `publik/pengumuman/index.tsx` (card list) + `publik/pengumuman/show.tsx` (detail)
+- ✅ **PublikLayout**: header (logo + nav Artikel/Pengumuman/Masuk) + footer
+- ✅ `app.tsx` update: `publik/` prefix → PublikLayout
+- ✅ Routes publik: `/artikel`, `/artikel/{slug}`, `/pengumuman`, `/pengumuman/{slug}` (tanpa auth)
+- ✅ Routes guru-bk: `resource('artikel')` + `resource('pengumuman')` (full CRUD)
+- ✅ `routes.ts` ditambah: `artikel.*`, `pengumuman.*`
+- ✅ Lint bersih, TypeScript 0 error baru
+
+### Fix Tahap 4 (05-07-2026)
+
+- ✅ **Welcome page redesign v2**: storytelling-driven layout — hero full-screen foto + logo sekolah + visi, statistik bar emas, tentang split asymmetric (foto miring + kontak), kegiatan zigzag, pengumuman, artikel featured+grid, footer dengan pola Islam SVG
+- ✅ **welcome.tsx**: thin wrapper — import 8 komponen terpisah dari `components/welcome/`
+- ✅ **8 komponen**: header.tsx, hero.tsx, statistik.tsx, tentang.tsx, kegiatan.tsx, pengumuman-section.tsx, artikel-section.tsx, footer.tsx, pola-islam.tsx
+- ✅ **Foto**: it1.jpg (hero), it2.jpg (tentang), logo-sekolah.jpg (header+hero+footer) — di-copy ke `public/images/`
+- ✅ **Pola Islam**: SVG pattern geometris Islam subtil sebagai signature visual di footer
+- ✅ **Route publik**: `/artikel`, `/artikel/{slug}`, `/pengumuman`, `/pengumuman/{slug}` (PublikController)
+- ✅ **Page publik**: `publik/artikel/index.tsx` (grid + pagination), `publik/artikel/show.tsx` (detail), `publik/pengumuman/index.tsx` (list + pagination), `publik/pengumuman/show.tsx` (detail)
+- ✅ **Welcome**: artikel & pengumuman limit 3 terbaru + link "Lihat Semua"
+- ✅ **app.tsx**: `publik/` prefix → null layout (publik pages pakai Header/Footer sendiri)
+- ✅ Lint bersih
+
 ### Yang Belum Dikerjakan
 
-- Artikel CRUD + publik pages
-- Pengumuman CRUD + publik pages
 - Dashboard per role (rekap data)
-- Laporan + filter + PDF export
-- Welcome page (belum dikustomisasi untuk SMP IT Budi Mulia)
+- Laporan (10 laporan) + filter + PDF export — detail di `doc/LAPORAN.md`
 
 ### Yang Sengaja Dihapus dari Scaffold
 
@@ -417,12 +454,14 @@ app/
 │   │   ├── SiswaController.php
 │   │   ├── SiswaKelasController.php
 │   │   ├── KategoriController.php
-│   │   ├── KetersediaanController.php ← NEW (template + blokir)
-│   │   ├── KonselingController.php ← NEW (index, show, inputHasil, editHasil, updateHasil)
-│   │   └── PengajuanController.php
+│   │   ├── KetersediaanController.php (template + blokir)
+│   │   ├── KonselingController.php (index, show, inputHasil, editHasil, updateHasil)
+│   │   ├── PengajuanController.php
+│   │   ├── ArtikelController.php ← NEW (CRUD + publish)
+│   │   └── PengumumanController.php ← NEW (CRUD + publish)
 │   ├── Siswa/
 │   │   ├── PengajuanController.php
-│   │   └── HasilController.php ← NEW (index, show)
+│   │   └── HasilController.php (index, show)
 │   └── Settings/
 │       ├── ProfileController.php
 │       └── SecurityController.php
@@ -483,7 +522,7 @@ database/
 resources/js/
 ├── app.tsx (resolve + FlashMessage + layout routing)
 ├── pages/
-│   ├── welcome.tsx
+│   ├── welcome.tsx (thin wrapper — import 8 komponen dari components/welcome/)
 │   ├── dashboard.tsx (placeholder)
 │   ├── auth/login.tsx
 │   ├── settings/ (profile, security, appearance)
@@ -503,14 +542,27 @@ resources/js/
 │   │   ├── pengajuan/edit.tsx (EntityPicker kategori + catatan)
 │   │   ├── konseling/index.tsx (table + filter status + search + pagination)
 │   │   ├── konseling/show.tsx (detail konseling + form input hasil)
-│   │   └── konseling/edit-hasil.tsx (form edit solusi + tindak lanjut)
-│   └── siswa/
-│       ├── pengajuan/index.tsx (card list + status tracking)
-│       ├── pengajuan/create.tsx (EntityPicker kategori)
-│       ├── pengajuan/show.tsx (detail + tombol edit)
-│       ├── pengajuan/edit.tsx (EntityPicker kategori + catatan)
-│       ├── hasil/index.tsx (card list hasil konseling)
-│       └── hasil/show.tsx (detail hasil + solusi + tindak lanjut)
+│   │   ├── konseling/edit-hasil.tsx (form edit solusi + tindak lanjut)
+│   │   ├── artikel/index.tsx (table + filter + search + pagination + CRUD)
+│   │   ├── artikel/create.tsx (form judul + isi + gambar + status)
+│   │   ├── artikel/edit.tsx (form edit)
+│   │   ├── artikel/show.tsx (detail + badge status)
+│   │   ├── pengumuman/index.tsx (table + filter + prioritas + CRUD)
+│   │   ├── pengumuman/create.tsx (form judul + isi + prioritas + tgl_berlaku)
+│   │   ├── pengumuman/edit.tsx (form edit)
+│   │   └── pengumuman/show.tsx (detail + badge prioritas)
+│   ├── siswa/
+│   │   ├── pengajuan/index.tsx (card list + status tracking)
+│   │   ├── pengajuan/create.tsx (EntityPicker kategori)
+│   │   ├── pengajuan/show.tsx (detail + tombol edit)
+│   │   ├── pengajuan/edit.tsx (EntityPicker kategori + catatan)
+│   │   ├── hasil/index.tsx (card list hasil konseling)
+│   │   └── hasil/show.tsx (detail hasil + solusi + tindak lanjut)
+│   ├── publik/
+│   │   ├── artikel/index.tsx (grid cards + pagination)
+│   │   ├── artikel/show.tsx (detail artikel)
+│   │   ├── pengumuman/index.tsx (list + pagination)
+│   │   └── pengumuman/show.tsx (detail pengumuman)
 ├── layouts/
 │   ├── app-layout.tsx → app/app-sidebar-layout.tsx
 │   ├── auth-layout.tsx → auth/auth-simple-layout.tsx
@@ -523,6 +575,7 @@ resources/js/
 │   ├── nav-main.tsx (support NavGroup + NavItem)
 │   ├── nav-footer.tsx
 │   ├── nav-user.tsx
+│   ├── welcome/ (8 komponen: header, hero, statistik, tentang, kegiatan, pengumuman-section, artikel-section, footer, pola-islam)
 │   └── ui/ (25+ shadcn components including table, textarea, form, tabs, pagination, scroll-area)
 ├── hooks/ (use-current-url, use-appearance, dll)
 ├── lib/
@@ -543,7 +596,14 @@ routes/
 │       ├── ketersediaan (4 routes: index, template, blokir, removeBlokir)
 │       ├── siswa-kelas (5 routes: index, update, destroy, naik-kelas form, naik-kelas process)
 │       ├── pengajuan (10 routes: index, create, store, show, edit, update, destroy, approve, reject, cancel)
-│       └── konseling (5 routes: index, show, input-hasil, edit-hasil, update-hasil)
+│       ├── konseling (5 routes: index, show, input-hasil, edit-hasil, update-hasil)
+│       ├── artikel (7 routes: resource — index, create, store, show, edit, update, destroy)
+│       └── pengumuman (7 routes: resource — index, create, store, show, edit, update, destroy)
+│   └── publik: / (welcome page: profil + artikel + pengumuman)
+│       ├── /artikel (index publik)
+│       ├── /artikel/{slug} (detail publik)
+│       ├── /pengumuman (index publik)
+│       └── /pengumuman/{slug} (detail publik)
 │   └── siswa:
 │       ├── pengajuan (6 routes: index, create, store, show, edit, update)
 │       └── hasil (2 routes: index, show)

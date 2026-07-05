@@ -1,17 +1,35 @@
 <?php
 
+use App\Http\Controllers\GuruBk\ArtikelController;
 use App\Http\Controllers\GuruBk\KelasController;
 use App\Http\Controllers\GuruBk\KategoriController;
 use App\Http\Controllers\GuruBk\KetersediaanController;
 use App\Http\Controllers\GuruBk\KonselingController;
 use App\Http\Controllers\GuruBk\PengajuanController as GuruBkPengajuanController;
+use App\Http\Controllers\GuruBk\PengumumanController;
 use App\Http\Controllers\GuruBk\SiswaController;
 use App\Http\Controllers\GuruBk\SiswaKelasController;
+use App\Http\Controllers\PublikController;
 use App\Http\Controllers\Siswa\HasilController as SiswaHasilController;
 use App\Http\Controllers\Siswa\PengajuanController as SiswaPengajuanController;
+use App\Models\Artikel;
+use App\Models\Pengumuman;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', function () {
+    $artikel = Artikel::with('author')->where('status', 'published')->latest('published_at')->limit(3)->get();
+    $pengumuman = Pengumuman::with('author')->where('status', 'published')->latest('published_at')->limit(3)->get();
+
+    return inertia('welcome', [
+        'artikel' => $artikel,
+        'pengumuman' => $pengumuman,
+    ]);
+})->name('home');
+
+Route::get('/artikel', [PublikController::class, 'artikelIndex'])->name('publik.artikel');
+Route::get('/artikel/{slug}', [PublikController::class, 'artikelShow'])->name('publik.artikel.show');
+Route::get('/pengumuman', [PublikController::class, 'pengumumanIndex'])->name('publik.pengumuman');
+Route::get('/pengumuman/{slug}', [PublikController::class, 'pengumumanShow'])->name('publik.pengumuman.show');
 
 Route::middleware(['auth'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
@@ -57,6 +75,9 @@ Route::middleware(['auth', 'role:guru_bk'])->prefix('guru-bk')->name('guru-bk.')
         Route::get('/{konseling}/edit-hasil', [KonselingController::class, 'editHasil'])->name('edit-hasil');
         Route::put('/{konseling}/hasil', [KonselingController::class, 'updateHasil'])->name('update-hasil');
     });
+
+    Route::resource('artikel', ArtikelController::class);
+    Route::resource('pengumuman', PengumumanController::class);
 });
 
 Route::middleware(['auth', 'role:kepala_sekolah'])->prefix('kepsek')->name('kepsek.')->group(function () {
