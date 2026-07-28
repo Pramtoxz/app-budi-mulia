@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
+
 use App\Http\Controllers\GuruBk\ArtikelController;
 use App\Http\Controllers\GuruBk\KelasController;
 use App\Http\Controllers\GuruBk\KategoriController;
@@ -9,9 +11,11 @@ use App\Http\Controllers\GuruBk\PengajuanController as GuruBkPengajuanController
 use App\Http\Controllers\GuruBk\PengumumanController;
 use App\Http\Controllers\GuruBk\SiswaController;
 use App\Http\Controllers\GuruBk\SiswaKelasController;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PublikController;
 use App\Http\Controllers\Siswa\HasilController as SiswaHasilController;
 use App\Http\Controllers\Siswa\PengajuanController as SiswaPengajuanController;
+use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Models\Artikel;
 use App\Models\Pengumuman;
 use Illuminate\Support\Facades\Route;
@@ -32,7 +36,7 @@ Route::get('/pengumuman', [PublikController::class, 'pengumumanIndex'])->name('p
 Route::get('/pengumuman/{slug}', [PublikController::class, 'pengumumanShow'])->name('publik.pengumuman.show');
 
 Route::middleware(['auth'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 });
 
 Route::middleware(['auth', 'role:guru_bk'])->prefix('guru-bk')->name('guru-bk.')->group(function () {
@@ -78,13 +82,25 @@ Route::middleware(['auth', 'role:guru_bk'])->prefix('guru-bk')->name('guru-bk.')
 
     Route::resource('artikel', ArtikelController::class);
     Route::resource('pengumuman', PengumumanController::class);
+
+    Route::prefix('laporan')->name('laporan.')->group(function () {
+        Route::get('/{jenis}', [LaporanController::class, 'show'])->name('show');
+        Route::get('/{jenis}/pdf', [LaporanController::class, 'pdf'])->name('pdf');
+    });
 });
 
 Route::middleware(['auth', 'role:kepala_sekolah'])->prefix('kepsek')->name('kepsek.')->group(function () {
-    //
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::prefix('laporan')->name('laporan.')->group(function () {
+        Route::get('/{jenis}', [LaporanController::class, 'show'])->name('show');
+        Route::get('/{jenis}/pdf', [LaporanController::class, 'pdf'])->name('pdf');
+    });
 });
 
 Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {
+    Route::get('/dashboard', [SiswaDashboardController::class, 'index'])->name('dashboard');
+
     Route::prefix('pengajuan')->name('pengajuan.')->group(function () {
         Route::get('/', [SiswaPengajuanController::class, 'index'])->name('index');
         Route::get('/create', [SiswaPengajuanController::class, 'create'])->name('create');

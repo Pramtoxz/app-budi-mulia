@@ -78,7 +78,7 @@ export default function SiswaHasilIndex({ hasilList, siswaNotFound }: Props) {
 
 SiswaHasilIndex.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Dashboard', href: '/siswa/dashboard' },
         { title: 'Hasil', href: '/siswa/hasil' },
     ],
 };

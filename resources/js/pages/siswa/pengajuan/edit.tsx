@@ -119,7 +119,7 @@ export default function SiswaPengajuanEdit({ pengajuan, kategoriList }: Props) {
 
 SiswaPengajuanEdit.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Dashboard', href: '/siswa/dashboard' },
         { title: 'Pengajuan', href: '/siswa/pengajuan' },
         { title: 'Edit', href: '#' },
     ],

@@ -103,7 +103,7 @@ export default function SiswaPengajuanIndex({ pengajuan, siswaNotFound }: Props)
 
 SiswaPengajuanIndex.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Dashboard', href: '/siswa/dashboard' },
         { title: 'Pengajuan', href: '/siswa/pengajuan' },
     ],
 };

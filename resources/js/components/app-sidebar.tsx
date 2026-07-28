@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     Calendar,
+    FileText,
     GraduationCap,
     LayoutGrid,
     MessageSquare,
@@ -36,7 +37,7 @@ const guruBkGroups: NavGroup[] = [
     {
         label: 'Umum',
         items: [
-            { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+            { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
         ],
     },
     {
@@ -63,13 +64,44 @@ const guruBkGroups: NavGroup[] = [
             { title: 'Pengumuman', href: '/guru-bk/pengumuman', icon: Newspaper },
         ],
     },
+    {
+        label: 'Laporan',
+        items: [
+            { title: 'Kelas', href: '/guru-bk/laporan/kelas', icon: GraduationCap },
+            { title: 'Siswa', href: '/guru-bk/laporan/siswa', icon: Users },
+            { title: 'Siswa-Kelas', href: '/guru-bk/laporan/siswa-kelas', icon: Users },
+            { title: 'Kategori', href: '/guru-bk/laporan/kategori', icon: Tags },
+            { title: 'Ketersediaan', href: '/guru-bk/laporan/ketersediaan', icon: Calendar },
+            { title: 'Pengajuan', href: '/guru-bk/laporan/pengajuan', icon: ScrollText },
+            { title: 'Konseling', href: '/guru-bk/laporan/konseling', icon: MessageSquare },
+            { title: 'Hasil', href: '/guru-bk/laporan/hasil', icon: FileText },
+            { title: 'Artikel', href: '/guru-bk/laporan/artikel', icon: BookOpen },
+            { title: 'Pengumuman', href: '/guru-bk/laporan/pengumuman', icon: Newspaper },
+        ],
+    },
 ];
 
-const kepsekNavItems: NavItem[] = [
+const kepsekGroups: NavGroup[] = [
     {
-        title: 'Laporan',
-        href: '/kepsek/laporan',
-        icon: ScrollText,
+        label: 'Umum',
+        items: [
+            { title: 'Dashboard', href: '/kepsek/dashboard', icon: LayoutGrid },
+        ],
+    },
+    {
+        label: 'Laporan',
+        items: [
+            { title: 'Kelas', href: '/kepsek/laporan/kelas', icon: GraduationCap },
+            { title: 'Siswa', href: '/kepsek/laporan/siswa', icon: Users },
+            { title: 'Siswa-Kelas', href: '/kepsek/laporan/siswa-kelas', icon: Users },
+            { title: 'Kategori', href: '/kepsek/laporan/kategori', icon: Tags },
+            { title: 'Ketersediaan', href: '/kepsek/laporan/ketersediaan', icon: Calendar },
+            { title: 'Pengajuan', href: '/kepsek/laporan/pengajuan', icon: ScrollText },
+            { title: 'Konseling', href: '/kepsek/laporan/konseling', icon: MessageSquare },
+            { title: 'Hasil', href: '/kepsek/laporan/hasil', icon: FileText },
+            { title: 'Artikel', href: '/kepsek/laporan/artikel', icon: BookOpen },
+            { title: 'Pengumuman', href: '/kepsek/laporan/pengumuman', icon: Newspaper },
+        ],
     },
 ];
 
@@ -77,7 +109,7 @@ const siswaGroups: NavGroup[] = [
     {
         label: 'Umum',
         items: [
-            { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+            { title: 'Dashboard', href: '/siswa/dashboard', icon: LayoutGrid },
         ],
     },
     {
@@ -94,12 +126,11 @@ export function AppSidebar() {
     const user = auth.user;
 
     let groups: NavGroup[] = [];
-    let flatItems: NavItem[] = [];
 
     if (user?.role === 'guru_bk') {
         groups = guruBkGroups;
     } else if (user?.role === 'kepala_sekolah') {
-        flatItems = kepsekNavItems;
+        groups = kepsekGroups;
     } else if (user?.role === 'siswa') {
         groups = siswaGroups;
     }
@@ -119,7 +150,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain groups={groups} items={flatItems} />
+                <NavMain groups={groups} items={[]} />
             </SidebarContent>
 
             <SidebarFooter>

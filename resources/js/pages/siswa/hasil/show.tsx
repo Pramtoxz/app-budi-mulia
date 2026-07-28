@@ -119,7 +119,7 @@ export default function SiswaHasilShow({ hasil }: Props) {
 
 SiswaHasilShow.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Dashboard', href: '/siswa/dashboard' },
         { title: 'Hasil', href: '/siswa/hasil' },
         { title: 'Detail', href: '#' },
     ],

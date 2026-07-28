@@ -301,7 +301,18 @@ LOGIN SISWA:
 
 ## Status Project Saat Ini
 
-**Kondisi: Tahap 4 CLEAR — siap mulai Tahap 5 (Dashboard + Laporan)**
+**Kondisi: Tahap 5 CLEAR — Siswa, Dashboard (Guru BK, Kepsek, Siswa), Laporan selesai penuh**
+
+### Yang Sudah Dikerjakan (Tahap 5 — 29-07-2026)
+
+- ✅ **Siswa login + Dashboard**: user siswa di seeder, redirect login per role, dashboard siswa
+- ✅ **Login UI redesign**: full-screen mobile-first, ungu-gold brand, glassmorphism, Islamic pattern
+- ✅ **Dashboard Guru BK & Kepsek**: `DashboardController` + `pages/dashboard.tsx` — statistik ringkas (Total Siswa, Menunggu, Disetujui, Selesai) + rekap 5 Pengajuan & Konseling terbaru
+- ✅ **LaporanController** (shared guru_bk + kepsek): 10 jenis laporan, filter tahun ajaran Juli-Juni, PDF DomPDF
+- ✅ **Routes laporan & dashboard**: `/dashboard`, `/kepsek/dashboard`, `/guru-bk/laporan/{jenis}`, `/kepsek/laporan/{jenis}`
+- ✅ **laporan/show.tsx**: halaman shared, input tahun ajaran 2 field (auto-combine), filter per jenis, tabel No auto-increment, Export PDF button
+- ✅ **PDF Blade template**: `resources/views/pdf/laporan.blade.php` — shared semua jenis, header sekolah ungu, footer TTD Kepsek
+- ✅ **Sidebar**: menu Dashboard dan 10 item laporan terpisah per menu di NavGroup untuk Guru BK dan Kepsek
 
 ### Yang Sudah Dikerjakan (Tahap 1 — 04-07-2026)
 

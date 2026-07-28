@@ -2,18 +2,18 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Setting;
+use App\Models\Artikel;
+use App\Models\Hasil;
+use App\Models\Jadwal;
+use App\Models\Kategori;
 use App\Models\Kelas;
+use App\Models\Konseling;
+use App\Models\Pengajuan;
+use App\Models\Pengumuman;
+use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\SiswaKelas;
-use App\Models\Kategori;
-use App\Models\Jadwal;
-use App\Models\Pengajuan;
-use App\Models\Konseling;
-use App\Models\Hasil;
-use App\Models\Artikel;
-use App\Models\Pengumuman;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -21,176 +21,165 @@ class TestingSeeder extends Seeder
 {
     public function run(): void
     {
+        // ── Setting ──────────────────────────────────────────────
         Setting::set('tahun_ajaran_aktif', '2025/2026');
         Setting::set('nama_sekolah', 'SMP IT Budi Mulia Padang');
 
-        $guruBk1 = User::create(['name' => 'Guru BK', 'username' => 'gurubk', 'password' => Hash::make('password'), 'role' => 'guru_bk']);
-        User::create(['name' => 'Bu Siti Rahayu', 'username' => 'gurubk2', 'password' => Hash::make('password'), 'role' => 'guru_bk']);
-        User::create(['name' => 'Kepala Sekolah', 'username' => 'kepsek', 'password' => Hash::make('password'), 'role' => 'kepala_sekolah']);
+        // ── Users ─────────────────────────────────────────────────
+        $guruBk = User::create([
+            'name'     => 'Guru BK',
+            'username' => 'gurubk',
+            'password' => Hash::make('password'),
+            'role'     => 'guru_bk',
+        ]);
 
-        $kategoriNames = [
-            'Masalah Akademik' => 'Kesulitan belajar, nilai rendah, malas belajar',
-            'Masalah Keluarga' => 'Orang tua cerai, KDRT, masalah ekonomi keluarga',
-            'Bullying' => 'Perundungan fisik, verbal, atau cyber',
-            'Pergaulan Bebas' => 'Pergaulan negatif, kenakalan remaja',
-            'Kesehatan Mental' => 'Stres, cemas berlebihan, depresi ringan',
-            'Kedisiplinan' => 'Bolos, terlambat, melanggar tata tertib',
-            'Narkoba & Zat Adiktif' => 'Penggunaan rokok, vape, atau zat terlarang',
-            'Prestasi & Motivasi' => 'Kurang motivasi, butuh dorongan berprestasi',
+        User::create([
+            'name'     => 'Kepala Sekolah',
+            'username' => 'kepsek',
+            'password' => Hash::make('password'),
+            'role'     => 'kepala_sekolah',
+        ]);
+
+        // ── Kelas ─────────────────────────────────────────────────
+        $kelasList = collect([
+            ['nama' => 'VII A', 'wali_kelas' => 'Bu Rina, S.Pd'],
+            ['nama' => 'VII B', 'wali_kelas' => 'Pak Hendra, S.Pd'],
+            ['nama' => 'VIII A', 'wali_kelas' => 'Bu Sari, S.Pd'],
+            ['nama' => 'VIII B', 'wali_kelas' => 'Pak Dedi, S.Pd'],
+            ['nama' => 'IX A',  'wali_kelas' => 'Bu Ani, S.Pd'],
+        ])->map(fn ($d) => Kelas::create($d));
+
+        // ── Jadwal Ketersediaan BK ────────────────────────────────
+        $jadwalData = [
+            ['Senin', '08:00', '10:00'],
+            ['Selasa', '09:00', '11:00'],
+            ['Rabu', '10:00', '12:00'],
+            ['Kamis', '08:00', '10:00'],
+            ['Jumat', '13:00', '15:00'],
         ];
-
-        $kategori = collect();
-        foreach ($kategoriNames as $nama => $deskripsi) {
-            $kategori->push(Kategori::create(['nama' => $nama, 'deskripsi' => $deskripsi]));
+        foreach ($jadwalData as [$hari, $mulai, $selesai]) {
+            Jadwal::create([
+                'guru_bk_id'  => $guruBk->id,
+                'hari'        => $hari,
+                'jam_mulai'   => $mulai,
+                'jam_selesai' => $selesai,
+            ]);
         }
 
-        $hariList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-        $jamList = ['07:00-08:00', '08:00-09:00', '09:30-10:30', '10:30-11:30', '13:00-14:00', '14:00-15:00'];
-        $jadwal = collect();
-        foreach ($hariList as $hari) {
-            foreach ($jamList as $jam) {
-                [$mulai, $selesai] = explode('-', $jam);
-                $jadwal->push(Jadwal::create([
-                    'hari' => $hari,
-                    'jam_mulai' => $mulai,
-                    'jam_selesai' => $selesai,
-                    'guru_bk_id' => $guruBk1->id,
-                ]));
+        // ── Kategori ──────────────────────────────────────────────
+        $kategoriData = [
+            ['nama' => 'Masalah Pribadi',    'deskripsi' => 'Permasalahan yang bersifat personal'],
+            ['nama' => 'Masalah Akademik',   'deskripsi' => 'Berkaitan dengan prestasi dan belajar'],
+            ['nama' => 'Masalah Sosial',     'deskripsi' => 'Hubungan dengan teman atau keluarga'],
+            ['nama' => 'Masalah Karir',      'deskripsi' => 'Cita-cita dan rencana masa depan'],
+        ];
+        $kategoriList = collect($kategoriData)->map(fn ($d) => Kategori::create($d));
+
+        // ── Siswa & User Siswa ────────────────────────────────────
+        $siswaData = [
+            ['Ahmad Fadhil',  'siswa',    '26001', 'L', 'Padang',      '2012-05-10', 'Islam',  'VII A'],
+            ['Budi Santoso',  'budi',     '26002', 'L', 'Bukittinggi', '2012-03-15', 'Islam',  'VII A'],
+            ['Citra Wulandari','citra',   '26003', 'P', 'Padang',      '2012-07-22', 'Islam',  'VII B'],
+            ['Dewi Rahayu',   'dewi',     '26004', 'P', 'Payakumbuh',  '2011-09-01', 'Islam',  'VIII A'],
+            ['Eko Prasetyo',  'eko',      '26005', 'L', 'Padang',      '2011-11-30', 'Islam',  'VIII A'],
+            ['Farida Hanum',  'farida',   '26006', 'P', 'Pariaman',    '2010-04-18', 'Islam',  'IX A'],
+        ];
+
+        $siswaModels = collect();
+        foreach ($siswaData as [$nama, $username, $nis, $jenkel, $tempat, $tgl, $agama, $kelasNama]) {
+            $userSiswa = User::create([
+                'name'     => $nama,
+                'username' => $username,
+                'password' => Hash::make('password'),
+                'role'     => 'siswa',
+            ]);
+
+            $siswa = Siswa::create([
+                'user_id'      => $userSiswa->id,
+                'nis'          => $nis,
+                'nama'         => $nama,
+                'jenkel'       => $jenkel,
+                'tempat_lahir' => $tempat,
+                'tgl_lahir'    => $tgl,
+                'agama'        => $agama,
+                'alamat'       => 'Jl. Contoh No. 1, Padang',
+                'nama_ayah'    => 'Ayah ' . $nama,
+                'nama_ibu'     => 'Ibu ' . $nama,
+            ]);
+
+            $kelas = $kelasList->firstWhere('nama', $kelasNama);
+            SiswaKelas::create([
+                'siswa_id'    => $siswa->id,
+                'kelas_id'    => $kelas->id,
+                'tahun_ajaran'=> '2025/2026',
+                'status'      => 'aktif',
+            ]);
+
+            $siswaModels->push($siswa);
+        }
+
+        // ── Pengajuan + Konseling + Hasil ─────────────────────────
+        $statusList = ['menunggu', 'disetujui', 'disetujui', 'disetujui'];
+        foreach ($siswaModels->take(4) as $i => $siswa) {
+            $kategori = $kategoriList->get($i % $kategoriList->count());
+            $status   = $statusList[$i];
+
+            $pengajuan = Pengajuan::create([
+                'siswa_id'      => $siswa->id,
+                'kategori_id'   => $kategori->id,
+                'tgl_pengajuan' => now()->subDays(rand(5, 30))->toDateString(),
+                'catatan'       => 'Butuh bimbingan terkait ' . strtolower($kategori->nama),
+                'status'        => $status,
+                'diajukan_oleh' => 'siswa',
+            ]);
+
+            if ($status === 'disetujui') {
+                $konseling = Konseling::create([
+                    'pengajuan_id'  => $pengajuan->id,
+                    'tgl_konseling' => now()->subDays(rand(1, 10))->toDateString(),
+                    'jam_konseling' => '09:00',
+                    'status'        => 'selesai',
+                    'keterangan'    => 'Sesi konseling berjalan lancar.',
+                ]);
+
+                Hasil::create([
+                    'konseling_id'  => $konseling->id,
+                    'tgl_hasil'     => now()->subDays(rand(1, 5))->toDateString(),
+                    'solusi'        => 'Diberikan bimbingan dan motivasi terkait ' . strtolower($kategori->nama) . '.',
+                    'tindak_lanjut' => 'Akan dipantau perkembangannya setiap minggu.',
+                ]);
             }
         }
 
-        $kelasNames = ['VII A', 'VII B', 'VII C', 'VIII A', 'VIII B', 'VIII C', 'IX A', 'IX B', 'IX C'];
-        $waliKelas = ['Pak Ahmad Hidayat', 'Bu Ratna Sari', 'Pak Budi Santoso', 'Bu Dewi Lestari', 'Pak Eko Prasetyo', 'Bu Fitriani', 'Pak Gunawan', 'Bu Hana Putri', 'Pak Irwan'];
-        $kelas = collect();
-        foreach ($kelasNames as $i => $nama) {
-            $kelas->push(Kelas::create(['nama' => $nama, 'wali_kelas' => $waliKelas[$i]]));
-        }
+        // ── Artikel ───────────────────────────────────────────────
+        Artikel::create([
+            'author_id'    => $guruBk->id,
+            'judul'        => 'Tips Mengatasi Stres Belajar',
+            'slug'         => 'tips-mengatasi-stres-belajar',
+            'isi'          => 'Belajar merupakan kewajiban setiap siswa. Namun terkadang tekanan akademik dapat menyebabkan stres...',
+            'status'       => 'published',
+            'published_at' => now()->subDays(10),
+        ]);
 
-        $siswaCounter = 0;
-        $siswaPerKelas = 30;
-        $siswaList = collect();
+        Artikel::create([
+            'author_id'    => $guruBk->id,
+            'judul'        => 'Pentingnya Komunikasi dengan Orang Tua',
+            'slug'         => 'pentingnya-komunikasi-dengan-orang-tua',
+            'isi'          => 'Komunikasi yang baik antara anak dan orang tua sangat penting untuk perkembangan emosional...',
+            'status'       => 'draft',
+            'published_at' => null,
+        ]);
 
-        foreach ($kelas as $k) {
-            for ($i = 0; $i < $siswaPerKelas; $i++) {
-                $siswaCounter++;
-                $jenkel = $i % 3 === 0 ? 'P' : 'L';
-                $namaDepan = $jenkel === 'L' ? fake()->firstNameMale() : fake()->firstNameFemale();
-                $namaBelakang = fake()->lastName();
-
-                $siswa = Siswa::create([
-                    'nis' => '2025' . str_pad($siswaCounter, 4, '0', STR_PAD_LEFT),
-                    'nama' => $namaDepan . ' ' . $namaBelakang,
-                    'jenkel' => $jenkel,
-                    'tempat_lahir' => fake()->city(),
-                    'tgl_lahir' => fake()->dateTimeBetween('2011-01-01', '2013-12-31'),
-                    'agama' => 'Islam',
-                    'alamat' => fake()->streetAddress() . ', Padang',
-                    'nama_ayah' => fake()->name('male'),
-                    'pekerjaan_ayah' => fake()->randomElement(['Wiraswasta', 'PNS', 'Guru', 'Pedagang', 'Sopir', 'Buruh']),
-                    'alamat_ayah' => fake()->address(),
-                    'no_hp_ayah' => '08' . fake()->numerify('##########'),
-                    'nama_ibu' => fake()->name('female'),
-                    'pekerjaan_ibu' => fake()->randomElement(['Ibu Rumah Tangga', 'Guru', 'Perawat', 'Pedagang']),
-                    'alamat_ibu' => fake()->address(),
-                    'no_hp_ibu' => '08' . fake()->numerify('##########'),
-                ]);
-
-                SiswaKelas::create([
-                    'siswa_id' => $siswa->id,
-                    'kelas_id' => $k->id,
-                    'tahun_ajaran' => '2025/2026',
-                    'status' => 'aktif',
-                ]);
-
-                $siswaList->push($siswa);
-            }
-        }
-
-        $pengajuanStatuses = array_merge(
-            array_fill(0, 60, 'disetujui'),
-            array_fill(0, 15, 'menunggu'),
-            array_fill(0, 10, 'ditolak'),
-            array_fill(0, 5, 'dibatalkan')
-        );
-        shuffle($pengajuanStatuses);
-
-        $jamKonseling = ['07:00', '08:00', '09:00', '10:00', '13:00', '14:00'];
-        $pengajuan = collect();
-        for ($i = 0; $i < 90; $i++) {
-            $s = $siswaList[$i];
-            $status = $pengajuanStatuses[$i];
-            $pengajuan->push(Pengajuan::create([
-                'kategori_id' => $kategori->random()->id,
-                'tgl_pengajuan' => fake()->dateTimeBetween('-3 months', '-1 week'),
-                'siswa_id' => $s->id,
-                'catatan' => fake()->sentence(),
-                'status' => $status,
-                'alasan_penolakan' => in_array($status, ['ditolak', 'dibatalkan']) ? 'Pertimbangan dari Guru BK' : null,
-                'diajukan_oleh' => fake()->randomElement(['siswa', 'guru_bk']),
-            ]));
-        }
-
-        $disetujui = $pengajuan->where('status', 'disetujui');
-        $konselingList = collect();
-        foreach ($disetujui as $p) {
-            $konselingList->push(Konseling::create([
-                'pengajuan_id' => $p->id,
-                'tgl_konseling' => fake()->dateTimeBetween('-2 months', '-3 days'),
-                'jam_konseling' => fake()->randomElement($jamKonseling),
-                'status' => 'selesai',
-                'keterangan' => 'Sesi konseling telah dilaksanakan',
-            ]));
-        }
-
-        foreach ($konselingList as $k) {
-            Hasil::create([
-                'konseling_id' => $k->id,
-                'tgl_hasil' => fake()->dateTimeBetween('-1 month', 'now'),
-                'solusi' => fake()->paragraph(2),
-                'tindak_lanjut' => fake()->randomElement([
-                    'Monitoring perkembangan siswa selama 2 minggu',
-                    'Koordinasi dengan wali kelas',
-                    'Panggilan orang tua',
-                    'Rujukan ke psikolog',
-                    null,
-                ]),
-            ]);
-        }
-
-        $artikelJudul = [
-            'Tips Mengatasi Stres Saat Ujian', 'Pentingnya Komunikasi dalam Keluarga',
-            'Cara Mencegah Bullying di Sekolah', 'Manajemen Waktu untuk Pelajar',
-            'Mengenali Tanda-Tanda Depresi pada Remaja', 'Pentingnya Olahraga untuk Kesehatan Mental',
-            'Cara Membangun Kepercayaan Diri', 'Bahaya Narkoba bagi Remaja',
-            'Tips Belajar Efektif di Rumah', 'Menghadapi Tekanan Teman Sebaya',
-            'Pentingnya Tidur Cukup untuk Pelajar', 'Cara Mengelola Emosi dengan Baik',
-            'Dampak Negatif Media Sosial', 'Membangun Hubungan yang Sehat dengan Teman',
-            'Peran Guru BK dalam Kehidupan Siswa',
-        ];
-
-        foreach ($artikelJudul as $judul) {
-            Artikel::create([
-                'judul' => $judul, 'isi' => fake()->paragraphs(5, true),
-                'author_id' => $guruBk1->id, 'status' => 'published',
-                'published_at' => fake()->dateTimeBetween('-2 months', 'now'),
-            ]);
-        }
-
-        $pengumumanJudul = [
-            'Jadwal Konseling Semester Genap 2025/2026', 'Pendaftaran Ekstrakurikuler Dibuka',
-            'Sosialisasi Anti-Bullying', 'Libur Semester Genap',
-            'Pelatihan Kepemimpinan Siswa', 'Pengumuman Hasil Ujian Akhir',
-            'Kegiatan Bakti Sosial', 'Workshop Manajemen Stres untuk Siswa',
-        ];
-
-        foreach ($pengumumanJudul as $judul) {
-            Pengumuman::create([
-                'judul' => $judul, 'isi' => fake()->paragraphs(2, true),
-                'prioritas' => fake()->randomElement(['rendah', 'sedang', 'tinggi']),
-                'author_id' => $guruBk1->id, 'status' => 'published',
-                'published_at' => fake()->dateTimeBetween('-1 month', 'now'),
-                'tgl_berlaku' => fake()->dateTimeBetween('now', '+3 months'),
-            ]);
-        }
+        // ── Pengumuman ────────────────────────────────────────────
+        Pengumuman::create([
+            'author_id'    => $guruBk->id,
+            'judul'        => 'Jadwal Konseling Semester Ganjil 2025/2026',
+            'slug'         => 'jadwal-konseling-semester-ganjil',
+            'isi'          => 'Bimbingan Konseling akan dilaksanakan setiap hari Senin-Jumat mulai pukul 08.00 WIB...',
+            'prioritas'    => 'tinggi',
+            'status'       => 'published',
+            'published_at' => now()->subDays(5),
+            'tgl_berlaku'  => now()->addMonths(6)->toDateString(),
+        ]);
     }
 }

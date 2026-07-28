@@ -133,7 +133,7 @@ export default function SiswaPengajuanCreate({ kategoriList, hasActivePengajuan 
 
 SiswaPengajuanCreate.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Dashboard', href: '/siswa/dashboard' },
         { title: 'Pengajuan', href: '/siswa/pengajuan' },
         { title: 'Ajukan', href: '/siswa/pengajuan/create' },
     ],
