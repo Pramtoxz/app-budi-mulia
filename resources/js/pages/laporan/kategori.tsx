@@ -1,134 +1,34 @@
-import { Head, router } from '@inertiajs/react';
-import { Download, FileText, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Head } from '@inertiajs/react';
+import { Download, FileText } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-
-// ─── Tahun Ajaran Input ───────────────────────────────────────────────────────
-
-function TahunAjaranInput({
-    value,
-    onChange,
-}: {
-    value: string;
-    onChange: (v: string) => void;
-}) {
-    const [t1, setT1] = useState(value ? value.split('/')[0] ?? '' : '');
-    const [t2, setT2] = useState(value ? value.split('/')[1] ?? '' : '');
-    const ref2 = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (!value) { setT1(''); setT2(''); }
-    }, [value]);
-
-    const handleT1 = (v: string) => {
-        const clean = v.replace(/\D/g, '').slice(0, 4);
-        setT1(clean);
-        if (clean.length === 4) {
-            const next = String(parseInt(clean) + 1);
-            setT2(next);
-            onChange(`${clean}/${next}`);
-            setTimeout(() => ref2.current?.focus(), 0);
-        } else {
-            onChange('');
-        }
-    };
-
-    const handleT2 = (v: string) => {
-        const clean = v.replace(/\D/g, '').slice(0, 4);
-        setT2(clean);
-        if (clean.length === 4 && t1.length === 4) {
-            onChange(`${t1}/${clean}`);
-        } else {
-            onChange('');
-        }
-    };
-
-    const baseClass =
-        'w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm text-center font-mono tracking-widest outline-none transition focus:border-[#2A166F] focus:ring-1 focus:ring-[#2A166F]/20';
-
-    return (
-        <div className="flex items-center gap-1.5">
-            <input
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                value={t1}
-                onChange={(e) => handleT1(e.target.value)}
-                placeholder="2025"
-                className={baseClass}
-                id="tahun1"
-            />
-            <span className="text-muted-foreground font-bold">/</span>
-            <input
-                ref={ref2}
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                value={t2}
-                onChange={(e) => handleT2(e.target.value)}
-                placeholder="2026"
-                className={baseClass}
-                id="tahun2"
-            />
-        </div>
-    );
-}
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Props {
     jenisLabel: string;
-    tahunAjaran: string | null;
-    data: Record<string, unknown>[] | null;
+    data: Record<string, unknown>[];
     role: 'guru_bk' | 'kepala_sekolah';
     baseUrl: string;
     namaSekolah: string;
 }
 
 const COLUMNS = ['Nama Kategori', 'Deskripsi', 'Jumlah Pengajuan'];
-const FIELDS  = ['nama_kategori', 'deskripsi', 'jumlah_pengajuan'];
+const FIELDS = ['nama_kategori', 'deskripsi', 'jumlah_pengajuan'];
 
-// ─── Page Component ───────────────────────────────────────────────────────────
-
-export default function LaporanKategori({
-    jenisLabel,
-    tahunAjaran,
-    data,
-    baseUrl,
-}: Props) {
-    const [localTa, setLocalTa] = useState(tahunAjaran ?? '');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!localTa || localTa.split('/').length !== 2) return;
-        router.get(`${baseUrl}/laporan/kategori`, { tahun_ajaran: localTa }, { preserveScroll: true });
-    };
-
-    const pdfUrl = () => {
-        if (!tahunAjaran) return '#';
-        const p = new URLSearchParams({ tahun_ajaran: tahunAjaran });
-        return `${baseUrl}/laporan/kategori/pdf?${p.toString()}`;
-    };
+export default function LaporanKategori({ jenisLabel, data, baseUrl }: Props) {
+    const pdfUrl = () => `${baseUrl}/laporan/kategori/pdf`;
 
     return (
         <>
             <Head title={jenisLabel} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 overflow-x-auto">
-
-                {/* ── Page Header ── */}
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-start justify-between gap-3">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">{jenisLabel}</h1>
                         <p className="text-muted-foreground text-sm mt-0.5">
-                            {data !== null
-                                ? `${data.length} data ditemukan — Tahun Ajaran ${tahunAjaran}`
-                                : 'Atur filter lalu tampilkan data'}
+                            {data.length} data ditemukan
                         </p>
                     </div>
-                    {data !== null && data.length > 0 && (
+                    {data.length > 0 && (
                         <a
                             href={pdfUrl()}
                             target="_blank"
@@ -141,50 +41,13 @@ export default function LaporanKategori({
                     )}
                 </div>
 
-                {/* ── Filter Card ── */}
-                <Card className="border-border/60">
-                    <CardContent className="pt-5 pb-4">
-                        <form onSubmit={handleSubmit}>
-                            <div className="flex flex-wrap gap-3 items-end">
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
-                                        Tahun Ajaran <span className="text-destructive">*</span>
-                                    </label>
-                                    <TahunAjaranInput value={localTa} onChange={setLocalTa} />
-                                </div>
-                                <Button
-                                    type="submit"
-                                    disabled={!localTa || localTa.split('/').length !== 2 || localTa.split('/').some(p => p.length !== 4)}
-                                    className="gap-2 bg-[#2A166F] hover:bg-[#3d1f8a] text-white"
-                                >
-                                    <Search className="size-4" />
-                                    Tampilkan
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                {/* ── Data Table ── */}
-                {data === null ? (
-                    <Card className="border-dashed">
-                        <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-3">
-                            <FileText className="size-12 text-muted-foreground/30" />
-                            <div>
-                                <p className="font-semibold text-muted-foreground">Belum ada data ditampilkan</p>
-                                <p className="text-sm text-muted-foreground/60 mt-1">Isi tahun ajaran dan klik Tampilkan</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ) : data.length === 0 ? (
+                {data.length === 0 ? (
                     <Card className="border-dashed">
                         <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-3">
                             <FileText className="size-12 text-muted-foreground/30" />
                             <div>
                                 <p className="font-semibold">Tidak ada data</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Tidak ada data untuk tahun ajaran <Badge variant="outline">{tahunAjaran}</Badge>
-                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">Belum ada data kategori tersedia.</p>
                             </div>
                         </CardContent>
                     </Card>

@@ -41,13 +41,13 @@ class LaporanController extends Controller
     ];
 
     // Reports that use tahun_ajaran parameter
-    private const CATEGORY_A = ['kelas', 'siswa', 'siswa-kelas', 'kategori', 'hasil'];
+    private const CATEGORY_A = ['siswa', 'siswa-kelas', 'hasil'];
 
     // Reports that use date filter (tanggal/bulan/tahun)
     private const CATEGORY_B = ['pengajuan', 'konseling', 'artikel', 'pengumuman'];
 
-    // Reports with no date filter
-    private const CATEGORY_C = ['ketersediaan'];
+    // Reports with no date filter (always load data)
+    private const CATEGORY_C = ['kelas', 'kategori', 'ketersediaan'];
 
     private const BULAN_NAMES = [
         1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -160,7 +160,7 @@ class LaporanController extends Controller
             $range = $this->dateRange($request);
             $data = $range ? $this->getData($jenis, $request) : null;
         } else {
-            // Category C (ketersediaan) - always load data
+            // Category C: always load data
             $data = $this->getData($jenis, $request);
         }
 
@@ -194,10 +194,9 @@ class LaporanController extends Controller
                 $props['filterKelasId']    = $request->input('kelas_id');
                 $props['filterKategoriId'] = $request->input('kategori_id');
             }
-        } else {
-            // Ketersediaan
-            $props['guruBkList']      = User::where('role', 'guru_bk')->orderBy('name')->get(['id', 'name']);
-            $props['filterGuruBkId']  = $request->input('guru_bk_id');
+        } elseif ($jenis === 'ketersediaan') {
+            $props['guruBkList']     = User::where('role', 'guru_bk')->orderBy('name')->get(['id', 'name']);
+            $props['filterGuruBkId'] = $request->input('guru_bk_id');
         }
 
         // Each report renders its own page
@@ -266,10 +265,10 @@ class LaporanController extends Controller
         $ta = $request->input('tahun_ajaran');
 
         return match ($jenis) {
-            'kelas'        => $this->getKelas($ta),
+            'kelas'        => $this->getKelas(),
             'siswa'        => $this->getSiswa($ta, $request->input('kelas_id')),
             'siswa-kelas'  => $this->getSiswaKelas($ta, $request->input('kelas_id'), $request->input('status')),
-            'kategori'     => $this->getKategori($ta),
+            'kategori'     => $this->getKategori(),
             'ketersediaan' => $this->getKetersediaan($request->input('guru_bk_id')),
             'pengajuan'    => $this->getPengajuanData($request),
             'konseling'    => $this->getKonselingData($request),
@@ -282,13 +281,13 @@ class LaporanController extends Controller
 
     // ── Category A Methods (tahun_ajaran based) ──────────────────────────────
 
-    private function getKelas(string $ta): array
+    private function getKelas(): array
     {
         return Kelas::orderBy('nama')->get()->map(fn ($k) => [
             'nama_kelas'   => $k->nama,
             'wali_kelas'   => $k->wali_kelas,
             'jumlah_siswa' => SiswaKelas::where('kelas_id', $k->id)
-                ->where('tahun_ajaran', $ta)->where('status', 'aktif')->count(),
+                ->where('status', 'aktif')->count(),
         ])->toArray();
     }
 
@@ -328,14 +327,12 @@ class LaporanController extends Controller
         ])->toArray();
     }
 
-    private function getKategori(string $ta): array
+    private function getKategori(): array
     {
-        [$start, $end] = $this->tahunRange($ta);
         return Kategori::orderBy('nama')->get()->map(fn ($k) => [
             'nama_kategori'    => $k->nama,
             'deskripsi'        => $k->deskripsi ?? '-',
-            'jumlah_pengajuan' => Pengajuan::where('kategori_id', $k->id)
-                ->whereBetween('tgl_pengajuan', [$start, $end])->count(),
+            'jumlah_pengajuan' => Pengajuan::where('kategori_id', $k->id)->count(),
         ])->toArray();
     }
 
@@ -355,7 +352,7 @@ class LaporanController extends Controller
         }
 
         return $q->orderBy('tgl_hasil')->get()->map(fn ($h) => [
-            'tanggal_hasil' => $h->tgl_hasil,
+            'tanggal_hasil' => $h->tgl_hasil?->format('Y-m-d') ?? '-',
             'nis'           => $h->konseling?->pengajuan?->siswa?->nis ?? '-',
             'nama_siswa'    => $h->konseling?->pengajuan?->siswa?->nama ?? '-',
             'kelas'         => $h->konseling?->pengajuan?->siswa?->siswaKelas->first()?->kelas?->nama ?? '-',
@@ -397,7 +394,7 @@ class LaporanController extends Controller
         if ($status) $q->where('status', $status);
 
         return $q->orderBy('tgl_pengajuan')->get()->map(fn ($p) => [
-            'tanggal'       => $p->tgl_pengajuan,
+            'tanggal'       => $p->tgl_pengajuan?->format('Y-m-d') ?? '-',
             'nis'           => $p->siswa?->nis ?? '-',
             'nama_siswa'    => $p->siswa?->nama ?? '-',
             'kelas'         => $p->siswa?->siswaKelas->first()?->kelas?->nama ?? '-',
@@ -429,7 +426,7 @@ class LaporanController extends Controller
         }
 
         return $q->orderBy('tgl_konseling')->get()->map(fn ($k) => [
-            'tanggal'    => $k->tgl_konseling,
+            'tanggal'    => $k->tgl_konseling?->format('Y-m-d') ?? '-',
             'jam'        => $k->jam_konseling ?? '-',
             'nis'        => $k->pengajuan?->siswa?->nis ?? '-',
             'nama_siswa' => $k->pengajuan?->siswa?->nama ?? '-',
@@ -451,7 +448,7 @@ class LaporanController extends Controller
         return $q->orderBy('created_at')->get()->map(fn ($a) => [
             'judul'           => $a->judul,
             'status'          => ucfirst($a->status),
-            'tanggal_publish' => $a->published_at ?? '-',
+            'tanggal_publish' => $a->published_at?->format('Y-m-d') ?? '-',
             'author'          => $a->author?->name ?? '-',
         ])->toArray();
     }
@@ -468,8 +465,8 @@ class LaporanController extends Controller
             'judul'           => $a->judul,
             'prioritas'       => ucfirst($a->prioritas),
             'status'          => ucfirst($a->status),
-            'tanggal_publish' => $a->published_at ?? '-',
-            'tanggal_berlaku' => $a->tgl_berlaku ?? '-',
+            'tanggal_publish' => $a->published_at?->format('Y-m-d') ?? '-',
+            'tanggal_berlaku' => $a->tgl_berlaku?->format('Y-m-d') ?? '-',
         ])->toArray();
     }
 }

@@ -99,7 +99,7 @@ export default function LaporanHasil({
     return (
         <>
             <Head title={jenisLabel} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 overflow-x-auto">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-start justify-between gap-3">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">{jenisLabel}</h1>
