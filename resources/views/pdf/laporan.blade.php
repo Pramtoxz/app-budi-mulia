@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>{{ $label }} — {{ $tahunAjaran }}</title>
+<title>{{ $label }}{{ $periodeLabel ? ' — ' . $periodeLabel : '' }}</title>
 <style>
     @page {
         margin: 20mm 20mm 20mm 20mm;
@@ -196,7 +196,9 @@
 {{-- ── JUDUL LAPORAN ── --}}
 <div class="judul-container">
     <div class="judul-laporan">{{ $label }}</div>
-    <div class="sub-judul">TAHUN AJARAN {{ $tahunAjaran }}</div>
+    @if($periodeLabel)
+        <div class="sub-judul">{{ strtoupper($periodeLabel) }}</div>
+    @endif
     @if(!empty($filterInfo))
         <div style="font-size: 9pt; font-style: italic; margin-top: 3px;">
             Filter: {{ implode(' | ', $filterInfo) }}
