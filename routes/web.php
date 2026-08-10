@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 
+use App\Http\Controllers\GuruBk\AkunSiswaController;
 use App\Http\Controllers\GuruBk\ArtikelController;
 use App\Http\Controllers\GuruBk\KelasController;
 use App\Http\Controllers\GuruBk\KategoriController;
@@ -43,6 +44,12 @@ Route::middleware(['auth', 'role:guru_bk'])->prefix('guru-bk')->name('guru-bk.')
     Route::resource('kelas', KelasController::class)->except(['show', 'create', 'edit'])->parameters(['kelas' => 'kelas']);
     Route::resource('siswa', SiswaController::class);
     Route::resource('kategori', KategoriController::class)->except(['show', 'create', 'edit']);
+
+    Route::prefix('siswa/{siswa}/akun')->name('siswa.akun.')->group(function () {
+        Route::post('/', [AkunSiswaController::class, 'store'])->name('store');
+        Route::put('/password', [AkunSiswaController::class, 'resetPassword'])->name('reset-password');
+        Route::delete('/', [AkunSiswaController::class, 'destroy'])->name('destroy');
+    });
 
     Route::prefix('ketersediaan')->name('ketersediaan.')->group(function () {
         Route::get('/', [KetersediaanController::class, 'index'])->name('index');

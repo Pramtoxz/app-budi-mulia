@@ -13,6 +13,11 @@ export const guruBkRoutes = {
         edit: (id: number) => `/guru-bk/siswa/${id}/edit`,
         update: (id: number) => `/guru-bk/siswa/${id}`,
         destroy: (id: number) => `/guru-bk/siswa/${id}`,
+        akun: {
+            store: (id: number) => `/guru-bk/siswa/${id}/akun`,
+            resetPassword: (id: number) => `/guru-bk/siswa/${id}/akun/password`,
+            destroy: (id: number) => `/guru-bk/siswa/${id}/akun`,
+        },
     },
     siswaKelas: {
         index: '/guru-bk/siswa-kelas',

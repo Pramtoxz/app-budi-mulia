@@ -9,6 +9,7 @@ use App\Models\Siswa;
 use App\Models\SiswaKelas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,7 +18,10 @@ class SiswaController extends Controller
     public function index(Request $request): Response
     {
         $siswa = Siswa::query()
-            ->with(['siswaKelas' => fn ($q) => $q->where('status', 'aktif')->with('kelas')])
+            ->with([
+                'siswaKelas' => fn ($q) => $q->where('status', 'aktif')->with('kelas'),
+                'user:id,username',
+            ])
             ->when($request->search, fn ($q, $search) => $q->where('nama', 'like', "%{$search}%")->orWhere('nis', 'like', "%{$search}%"))
             ->latest()
             ->paginate(15)
@@ -128,7 +132,11 @@ class SiswaController extends Controller
                 ->with('error', 'Siswa tidak bisa dihapus karena memiliki pengajuan aktif.');
         }
 
-        $siswa->delete();
+        DB::transaction(function () use ($siswa) {
+            $user = $siswa->user;
+            $siswa->delete();
+            $user?->delete();
+        });
 
         return redirect()->route('guru-bk.siswa.index')
             ->with('success', 'Siswa berhasil dihapus.');

@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Plus, Pencil, Trash2, MoreHorizontal, Users, Search, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, MoreHorizontal, Users, Search, Eye, KeyRound, UserPlus, UserX } from 'lucide-react';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { guruBkRoutes } from '@/lib/routes';
 
@@ -23,6 +24,11 @@ interface SiswaKelas {
     status: string;
 }
 
+interface AkunInfo {
+    id: number;
+    username: string;
+}
+
 interface SiswaData {
     id: number;
     nis: string;
@@ -30,6 +36,7 @@ interface SiswaData {
     jenkel: string;
     agama: string | null;
     siswa_kelas: SiswaKelas[];
+    user: AkunInfo | null;
 }
 
 interface PaginatedSiswa {
@@ -50,6 +57,11 @@ export default function SiswaIndex({ siswa, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingSiswa, setDeletingSiswa] = useState<SiswaData | null>(null);
+    const [akunDialogOpen, setAkunDialogOpen] = useState(false);
+    const [akunMode, setAkunMode] = useState<'buat' | 'reset'>('buat');
+    const [akunSiswa, setAkunSiswa] = useState<SiswaData | null>(null);
+    const [hapusAkunDialogOpen, setHapusAkunDialogOpen] = useState(false);
+    const [hapusAkunSiswa, setHapusAkunSiswa] = useState<SiswaData | null>(null);
 
     const { processing } = useForm();
 
@@ -77,6 +89,50 @@ export default function SiswaIndex({ siswa, filters }: Props) {
         const aktif = s.siswa_kelas.find((sk) => sk.status === 'aktif');
 
         return aktif ? aktif.kelas.nama : '-';
+    };
+
+    const akunForm = useForm({ username: '', password: '' });
+
+    const openAkunDialog = (s: SiswaData, mode: 'buat' | 'reset') => {
+        setAkunSiswa(s);
+        setAkunMode(mode);
+        akunForm.setData({ username: s.nis, password: s.nis.length >= 6 ? s.nis : '' });
+        akunForm.clearErrors();
+        setAkunDialogOpen(true);
+    };
+
+    const closeAkunDialog = () => {
+        setAkunDialogOpen(false);
+        setAkunSiswa(null);
+        akunForm.clearErrors();
+    };
+
+    const handleAkunSubmit = () => {
+        if (!akunSiswa) {
+return;
+}
+
+        const options = { preserveScroll: true, onSuccess: () => closeAkunDialog() };
+
+        if (akunMode === 'buat') {
+            akunForm.post(guruBkRoutes.siswa.akun.store(akunSiswa.id), options);
+        } else {
+            akunForm.put(guruBkRoutes.siswa.akun.resetPassword(akunSiswa.id), options);
+        }
+    };
+
+    const handleHapusAkun = () => {
+        if (!hapusAkunSiswa) {
+return;
+}
+
+        router.delete(guruBkRoutes.siswa.akun.destroy(hapusAkunSiswa.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setHapusAkunDialogOpen(false);
+                setHapusAkunSiswa(null);
+            },
+        });
     };
 
     return (
@@ -136,6 +192,7 @@ export default function SiswaIndex({ siswa, filters }: Props) {
                                             <TableHead>Nama</TableHead>
                                             <TableHead>JK</TableHead>
                                             <TableHead>Kelas</TableHead>
+                                            <TableHead>Akun</TableHead>
                                             <TableHead className="w-[100px]">Aksi</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -150,6 +207,15 @@ export default function SiswaIndex({ siswa, filters }: Props) {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>{getKelasInfo(s)}</TableCell>
+                                                <TableCell>
+                                                    {s.user ? (
+                                                        <Badge variant="outline" className="font-mono text-xs">
+                                                            {s.user.username}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-sm">Belum ada</span>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -166,6 +232,29 @@ export default function SiswaIndex({ siswa, filters }: Props) {
                                                                 <Pencil className="size-4" />
                                                                 Edit
                                                             </DropdownMenuItem>
+                                                            {s.user ? (
+                                                                <>
+                                                                    <DropdownMenuItem onClick={() => openAkunDialog(s, 'reset')}>
+                                                                        <KeyRound className="size-4" />
+                                                                        Reset Password
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        onClick={() => {
+                                                                            setHapusAkunSiswa(s);
+                                                                            setHapusAkunDialogOpen(true);
+                                                                        }}
+                                                                        className="text-destructive focus:text-destructive"
+                                                                    >
+                                                                        <UserX className="size-4" />
+                                                                        Hapus Akun
+                                                                    </DropdownMenuItem>
+                                                                </>
+                                                            ) : (
+                                                                <DropdownMenuItem onClick={() => openAkunDialog(s, 'buat')}>
+                                                                    <UserPlus className="size-4" />
+                                                                    Buat Akun
+                                                                </DropdownMenuItem>
+                                                            )}
                                                             <DropdownMenuItem
                                                                 onClick={() => openDeleteDialog(s)}
                                                                 className="text-destructive focus:text-destructive"
@@ -222,6 +311,92 @@ export default function SiswaIndex({ siswa, filters }: Props) {
                         </Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={processing}>
                             {processing ? 'Menghapus...' : 'Hapus'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={akunDialogOpen} onOpenChange={(open) => !open && closeAkunDialog()}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {akunMode === 'buat' ? 'Buat Akun Login' : 'Reset Password'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {akunMode === 'buat'
+                                ? <>Buat akun agar <strong>{akunSiswa?.nama}</strong> bisa login sendiri untuk mengajukan konseling.</>
+                                : <>Atur ulang password akun <strong>{akunSiswa?.user?.username}</strong> milik {akunSiswa?.nama}.</>}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4">
+                        {akunMode === 'buat' && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="akun-username">Username</Label>
+                                <Input
+                                    id="akun-username"
+                                    value={akunForm.data.username}
+                                    onChange={(e) => akunForm.setData('username', e.target.value)}
+                                    placeholder="Contoh: NIS siswa"
+                                    autoComplete="off"
+                                />
+                                <p className="text-muted-foreground text-xs">
+                                    Default memakai NIS. Username otomatis disimpan huruf kecil.
+                                </p>
+                                {akunForm.errors.username && (
+                                    <p className="text-destructive text-sm">{akunForm.errors.username}</p>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="akun-password">Password</Label>
+                            <Input
+                                id="akun-password"
+                                value={akunForm.data.password}
+                                onChange={(e) => akunForm.setData('password', e.target.value)}
+                                placeholder="Minimal 6 karakter"
+                                autoComplete="off"
+                            />
+                            <p className="text-muted-foreground text-xs">
+                                Catat dan berikan ke siswa. Siswa bisa menggantinya di menu Keamanan.
+                            </p>
+                            {akunForm.errors.password && (
+                                <p className="text-destructive text-sm">{akunForm.errors.password}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={closeAkunDialog}>
+                            Batal
+                        </Button>
+                        <Button onClick={handleAkunSubmit} disabled={akunForm.processing}>
+                            {akunForm.processing
+                                ? 'Menyimpan...'
+                                : akunMode === 'buat' ? 'Buat Akun' : 'Simpan Password'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={hapusAkunDialogOpen} onOpenChange={setHapusAkunDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus Akun Login</DialogTitle>
+                        <DialogDescription>
+                            Hapus akun <strong>{hapusAkunSiswa?.user?.username}</strong> milik {hapusAkunSiswa?.nama}?
+                            Siswa tidak bisa login lagi, tetapi data siswa dan riwayat konselingnya tetap tersimpan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+ setHapusAkunDialogOpen(false); setHapusAkunSiswa(null);
+}}>
+                            Batal
+                        </Button>
+                        <Button variant="destructive" onClick={handleHapusAkun}>
+                            Hapus Akun
                         </Button>
                     </DialogFooter>
                 </DialogContent>
